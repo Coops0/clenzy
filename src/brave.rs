@@ -1,26 +1,17 @@
-use crate::util::get_or_insert_obj;
+use crate::util::{config_base, get_or_insert_obj};
 use color_eyre::eyre::{Context, ContextCompat};
 use color_eyre::Help;
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
 use tracing::{debug, info, instrument};
 
-fn base() -> Option<PathBuf> {
-    #[cfg(target_os = "macos")]
-    return dirs::config_dir();
-    #[cfg(target_os = "windows")]
-    return dirs::data_dir();
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    return dirs::config_local_dir();
-}
-
 pub fn brave_folder() -> Option<PathBuf> {
-    let path = base()?.join("BraveSoftware").join("Brave-Browser");
+    let path = config_base()?.join("BraveSoftware").join("Brave-Browser");
     if path.exists() { Some(path) } else { None }
 }
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
-    let path = base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    let path = config_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
     if path.exists() { Some(path) } else { None }
 }
 
@@ -28,6 +19,7 @@ pub fn brave_nightly_folder() -> Option<PathBuf> {
 pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
     let default = path.join("Default");
     preferences(&default)?;
+    chrome_feature_state(&default)?;
 
     Ok(())
 }
@@ -44,10 +36,16 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
     let mut prefs = serde_json::from_str::<Value>(&prefs_str?)?;
 
     let prefs_map = prefs.as_object_mut().context("failed to parse preferences as an object")?;
+
+    if let Some(bookmark_bar) = get_or_insert_obj(prefs_map, "bookmark_bar") {
+        bookmark_bar.insert(String::from("show_on_all_tabs"), json!(false));
+        bookmark_bar.insert(String::from("show_tab_groups"), json!(false));
+        debug!("disabled bookmark bar on all tabs and tab groups");
+    }
+
     let brave = prefs_map
         .get_mut("brave")
-        .map(Value::as_object_mut)
-        .flatten()
+        .and_then(Value::as_object_mut)
         .context("failed to get brave object")?;
 
     if let Some(ai_chat) = get_or_insert_obj(brave, "ai_chat") {
@@ -155,9 +153,23 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("marked welcome page as seen");
     }
 
-    // custom links could go here
+    if let Some(custom_links) = get_or_insert_obj(prefs_map, "custom_links") {
+        custom_links.insert(String::from("initialized"), json!(true));
+        custom_links.insert(
+            String::from("list"),
+            json!([
+                { "isMostVisited": true, "title": "Kagi", "url": "https://kagi.com/" },
+                { "isMostVisited": true, "title": "Claude", "url": "http://claude.com/" },
+                { "isMostVisited": true, "title": "YouTube", "url": "http://youtube.com/" },
+                { "isMostVisited": true, "title": "Gemini", "url": "http://gemini.google.com/" },
+                { "isMostVisited": true, "title": "ChatGPT", "url": "http://chatgpt.com/" },
+                { "isMostVisited": true, "title": "Instagram", "url": "http://instagram.com/" },
+                { "isMostVisited": true, "title": "NextDNS", "url": "http://my.nextdns.com/" }
+           ]),
+        );
+    }
 
-    brave.insert(
+    prefs_map.insert(
         String::from("default_search_provider_data"),
         json!({
               "mirrored_template_url_data": {
@@ -201,10 +213,10 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
             }
         }),
     );
-    brave.insert(String::from("enable_do_not_track"), json!(true));
+    prefs_map.insert(String::from("enable_do_not_track"), json!(true));
     debug!("set default search provider to kagi and enabled do not track");
 
-    if let Some(in_product_help) = get_or_insert_obj(brave, "in_product_help") {
+    if let Some(in_product_help) = get_or_insert_obj(prefs_map, "in_product_help") {
         if let Some(new_badge) = get_or_insert_obj(in_product_help, "new_badge") {
             if let Some(compose_nudge) = get_or_insert_obj(new_badge, "ComposeNudge") {
                 compose_nudge.insert(String::from("show_count"), json!(0));
@@ -225,24 +237,24 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("disabled in product help");
     }
 
-    if let Some(ntp) = get_or_insert_obj(brave, "ntp") {
+    if let Some(ntp) = get_or_insert_obj(prefs_map, "ntp") {
         ntp.insert(String::from("shortcust_visible"), json!(false));
         ntp.insert(String::from("use_most_visited_tiles"), json!(false));
         debug!("hid ntp widgets");
     }
 
-    if let Some(omnibox) = get_or_insert_obj(brave, "omnibox") {
+    if let Some(omnibox) = get_or_insert_obj(prefs_map, "omnibox") {
         omnibox.insert(String::from("prevent_url_elisions"), json!(true));
         omnibox.insert(String::from("shown_count_history_scope_promo"), json!(false));
         debug!("disabled omnibox elisions and history scope promo");
     }
 
-    if let Some(search) = get_or_insert_obj(brave, "search") {
+    if let Some(search) = get_or_insert_obj(prefs_map, "search") {
         search.insert(String::from("suggest_enabled"), json!(true));
         debug!("enabled search suggestions");
     }
 
-    if let Some(privacy_sandbox) = get_or_insert_obj(brave, "privacy_sandbox") {
+    if let Some(privacy_sandbox) = get_or_insert_obj(prefs_map, "privacy_sandbox") {
         privacy_sandbox.insert(String::from("first_party_sets_enabled"), json!(false));
         if let Some(m1) = get_or_insert_obj(privacy_sandbox, "m1") {
             m1.insert(String::from("ad_measurement_enabled"), json!(false));

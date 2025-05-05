@@ -1,4 +1,5 @@
 mod brave;
+mod firefox;
 mod util;
 
 use std::env;
@@ -32,6 +33,8 @@ fn main() -> color_eyre::Result<()> {
 
     try_browser!("Brave", brave::brave_folder, brave::debloat);
     try_browser!("Brave Nightly", brave::brave_nightly_folder, brave::debloat);
+    try_browser!("Firefox", firefox::firefox_folder, firefox::debloat);
+    try_browser!("Firefox Nightly", firefox::firefox_nightly_folder, firefox::debloat);
 
     if !util::any_browser_found() {
         error!("no browsers were found");

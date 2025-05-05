@@ -5,6 +5,7 @@
 //         .collect::<HashSet<PathBuf>>()
 // });
 
+use std::path::PathBuf;
 use serde_json::{Map, Value};
 use tracing::debug;
 
@@ -46,4 +47,13 @@ pub fn get_or_insert_obj<'a>(
 
 pub fn any_browser_found() -> bool {
     unsafe { BROWSER_FOUND }
+}
+
+pub fn config_base() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    return dirs::config_dir();
+    #[cfg(target_os = "windows")]
+    return dirs::data_dir();
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    return dirs::config_local_dir();
 }
