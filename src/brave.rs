@@ -1,17 +1,20 @@
-use crate::util::{config_base, get_or_insert_obj};
+use crate::util::{data_base, get_or_insert_obj};
 use color_eyre::eyre::{Context, ContextCompat};
 use color_eyre::Help;
 use serde_json::{json, Map, Value};
+use std::cell::LazyCell;
+use std::io::Lines;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use tracing::{debug, info, instrument};
 
 pub fn brave_folder() -> Option<PathBuf> {
-    let path = config_base()?.join("BraveSoftware").join("Brave-Browser");
+    let path = data_base()?.join("BraveSoftware").join("Brave-Browser");
     if path.exists() { Some(path) } else { None }
 }
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
-    let path = config_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    let path = data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
     if path.exists() { Some(path) } else { None }
 }
 
@@ -158,63 +161,19 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         custom_links.insert(
             String::from("list"),
             json!([
-                { "isMostVisited": true, "title": "Kagi", "url": "https://kagi.com/" },
-                { "isMostVisited": true, "title": "Claude", "url": "http://claude.com/" },
-                { "isMostVisited": true, "title": "YouTube", "url": "http://youtube.com/" },
-                { "isMostVisited": true, "title": "Gemini", "url": "http://gemini.google.com/" },
-                { "isMostVisited": true, "title": "ChatGPT", "url": "http://chatgpt.com/" },
-                { "isMostVisited": true, "title": "Instagram", "url": "http://instagram.com/" },
-                { "isMostVisited": true, "title": "NextDNS", "url": "http://my.nextdns.com/" }
-           ]),
+                 { "isMostVisited": true, "title": "Kagi", "url": "https://kagi.com/" },
+                 { "isMostVisited": true, "title": "Claude", "url": "http://claude.com/" },
+                 { "isMostVisited": true, "title": "YouTube", "url": "http://youtube.com/" },
+                 { "isMostVisited": true, "title": "Gemini", "url": "http://gemini.google.com/" },
+                 { "isMostVisited": true, "title": "ChatGPT", "url": "http://chatgpt.com/" },
+                 { "isMostVisited": true, "title": "Instagram", "url": "http://instagram.com/" },
+                 { "isMostVisited": true, "title": "NextDNS", "url": "http://my.nextdns.com/" }
+            ]),
         );
     }
 
-    prefs_map.insert(
-        String::from("default_search_provider_data"),
-        json!({
-              "mirrored_template_url_data": {
-              "alternate_urls": [],
-              "contextual_search_url": "",
-              "created_from_play_api": false,
-              "date_created": "0",
-              "doodle_url": "",
-              "enforced_by_policy": false,
-              "favicon_url": "https://assets.kagi.com/v2/favicon-32x32.png",
-              "featured_by_policy": false,
-              "id": "0",
-              "image_search_branding_label": "",
-              "image_translate_source_language_param_key": "",
-              "image_translate_target_language_param_key": "",
-              "image_translate_url": "",
-              "image_url": "",
-              "image_url_post_params": "",
-              "input_encodings": ["UTF-8"],
-              "is_active": 0,
-              "keyword": "@kagi",
-              "last_modified": "0",
-              "last_visited": "0",
-              "logo_url": "",
-              "new_tab_url": "",
-              "originating_url": "",
-              "policy_origin": 0,
-              "preconnect_to_search_url": false,
-              "prefetch_likely_navigations": false,
-              "prepopulate_id": 0,
-              "safe_for_autoreplace": false,
-              "search_intent_params": [],
-              "search_url_post_params": "",
-              "short_name": "Kagi",
-              "starter_pack_id": 0,
-              "suggestions_url": "https://kagisuggest.com/api/autosuggest?q={searchTerms}",
-              "suggestions_url_post_params": "",
-              "synced_guid": "685774e5-e6da-4393-a71e-d7253d30665d",
-              "url": "https://kagi.com/search?q={searchTerms}",
-              "usage_count": 0
-            }
-        }),
-    );
     prefs_map.insert(String::from("enable_do_not_track"), json!(true));
-    debug!("set default search provider to kagi and enabled do not track");
+    debug!("enabled do not track");
 
     if let Some(in_product_help) = get_or_insert_obj(prefs_map, "in_product_help") {
         if let Some(new_badge) = get_or_insert_obj(in_product_help, "new_badge") {
@@ -269,48 +228,9 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         .wrap_err_with(|| format!("failed to write preferences to {}", path.display()))
 }
 
-const DISABLED_FEATURES: [&str; 40] = [
-    "AIChat",
-    "AIChatContextMenuRewriteInPlace",
-    "AIChatFirst",
-    "AIPromptAPIForWebPlatform",
-    "AIPromptAPIMultimodalInput",
-    "AIRewriter",
-    "AIRewriterAPI",
-    "AISummarizationAPI",
-    "AIWriterAPI",
-    "AiSettingsPageEnterpriseDisabledUi",
-    "AllowedToFallbackToCustomNotificationAd",
-    "BraveAdblockDefault1pBlocking<Default1pBlockingStudy",
-    "BraveCleanupSessionCookiesOnSessionRestore<BraveCleanupSessionCookiesOnSessionRestore",
-    "BraveEnableAutoTranslate<BraveAutoTranslateStudy",
-    "BraveNTPSuperReferralWallpaperName",
-    "BraveNewsCardPeek",
-    "BraveNewsFeedUpdate",
-    "BraveRewardsAllowSelfCustodyProviders",
-    "BraveRewardsAllowUnsupportedWalletProviders",
-    "BraveRewardsAnimatedBackground",
-    "BraveRewardsGemini",
-    "BraveRewardsNewRewardsUI",
-    "BraveRewardsPlatformCreatorDetection",
-    "BraveRewardsVerboseLogging",
-    "BraveShowStrictFingerprintingMode<BraveAggressiveModeRetirementExperiment",
-    "BraveWalletAnkrBalances",
-    "BraveWalletBitcoin",
-    "BraveWalletTransactionSimulations",
-    "BraveWalletZCash",
-    "ClampPlatformVersionClientHint<ClampPlatformVersionClientHint",
-    "CosmeticFilterSyncLoad",
-    "CryptoWalletsForNewInstallsFeature",
-    "CustomNotificationAds",
-    "CustomSiteDistillerScripts",
-    "EnableDiscountInfoApi",
-    "NativeBraveWallet",
-    "OpenAIChatFromBraveSearch",
-    "PageContentRefine",
-    "PageContextEnabledInitially",
-    "PrivacyGuideAiSettings",
-];
+const DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
+    include_str!("../snippets/disabled_features").lines().filter(|line| !line.is_empty()).collect()
+});
 
 #[instrument]
 fn chrome_feature_state(root: &PathBuf) -> color_eyre::Result<()> {
@@ -332,7 +252,7 @@ fn chrome_feature_state(root: &PathBuf) -> color_eyre::Result<()> {
         .as_array_mut()
         .context("failed to get disable-features array")?;
 
-    for feature in DISABLED_FEATURES {
+    for feature in DISABLED_FEATURES.iter() {
         let v = json!(feature);
         if !disable_features.contains(&v) {
             disable_features.push(v);

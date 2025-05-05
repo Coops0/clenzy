@@ -3,9 +3,8 @@ mod firefox;
 mod util;
 
 use std::env;
-use std::path::PathBuf;
 use tracing::level_filters::LevelFilter;
-use tracing::{error, info};
+use tracing::warn;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
@@ -28,16 +27,12 @@ fn main() -> color_eyre::Result<()> {
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
 
-    // todo check if browser is running
-    // todo install extensions?
-
     try_browser!("Brave", brave::brave_folder, brave::debloat);
     try_browser!("Brave Nightly", brave::brave_nightly_folder, brave::debloat);
     try_browser!("Firefox", firefox::firefox_folder, firefox::debloat);
-    try_browser!("Firefox Nightly", firefox::firefox_nightly_folder, firefox::debloat);
 
     if !util::any_browser_found() {
-        error!("no browsers were found");
+        warn!("no browsers were found");
     }
 
     Ok(())
