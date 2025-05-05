@@ -59,9 +59,13 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("disabled brave AI chat");
     }
 
+    brave.insert(String::from("always_show_bookmark_bar_on_ntp"), json!(true));
+    // People will want this disabled by default probably
+    brave.insert(String::from("autocomplete_enabled"), json!(true));
+    debug!("enabled bookmark bar and autocomplete");
+
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
-        brave_ads
-            .insert(String::from("should_allow_ads_subdivision_targeting"), json!(false));
+        brave_ads.insert(String::from("should_allow_ads_subdivision_targeting"), json!(false));
         debug!("disabled brave ads");
     }
 
@@ -74,6 +78,11 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         brave_vpn.insert(String::from("show_button"), json!(false));
         debug!("hid brave VPN button");
     }
+
+    brave.insert(String::from("enable_closing_last_tab"), json!(true));
+    brave.insert(String::from("enable_window_closing_confirm"), json!(true));
+    brave.insert(String::from("location_bar_is_wide"), json!(true));
+    debug!("enabled closing last tab and wide location bar");
 
     if let Some(new_tab_page) = get_or_insert_obj(brave, "new_tab_page") {
         new_tab_page.insert(String::from("hide_all_widgets"), json!(true));
@@ -89,10 +98,38 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("hid new tab page widgets");
     }
 
+    brave.insert(String::from("other_search_engines_enabled"), json!(true));
+    debug!("enabled other search engines");
+
     if let Some(rewards) = get_or_insert_obj(brave, "rewards") {
-        rewards
-            .insert(String::from("show_brave_rewards_button_in_location_bar"), json!(false));
+        rewards.insert(String::from("show_brave_rewards_button_in_location_bar"), json!(false));
         debug!("hid brave rewards button");
+    }
+
+    if let Some(shields) = get_or_insert_obj(brave, "shields") {
+        shields.insert(String::from("advanced_view_enabled"), json!(true));
+        shields.insert(String::from("stats_badge_visible"), json!(false));
+        debug!("enabled shields advanced view and hid stats badge");
+    }
+
+    brave.insert(String::from("show_fullscreen_reminder"), json!(false));
+    brave.insert(String::from("show_side_panel_button"), json!(false));
+    debug!("hid fullscreen reminder and side panel button");
+
+    if let Some(sidebar) = get_or_insert_obj(brave, "sidebar") {
+        sidebar.insert(String::from("hidden_built_in_items"), json!([7]));
+        sidebar.insert(String::from("item_added_feedback_bubble_shown_count"), json!(1));
+        sidebar.insert(
+            String::from("sidebar_items"),
+            json!([
+                { "built_in_item_type": 1, "type": 0 },
+                { "built_in_item_type": 2, "type": 0 },
+                { "built_in_item_type": 3, "type": 0 },
+                { "built_in_item_type": 4, "type": 0 }
+            ]),
+        );
+        sidebar.insert(String::from("sidebar_show_option"), json!(3));
+        debug!("hid sidebar items");
     }
 
     if let Some(tabs) = get_or_insert_obj(brave, "tabs") {
@@ -104,11 +141,68 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("enabled vertical tabs");
     }
 
-    // todo we could force kagi default search here
-
+    brave.insert(String::from("tabs_search_show"), json!(false));
     brave.insert(String::from("webtorrent_enabled"), json!(false));
+    info!("disabled webtorrent and hid tabs search");
+
+    if let Some(today) = get_or_insert_obj(brave, "today") {
+        today.insert(String::from("should_show_toolbar_button"), json!(false));
+        debug!("hid today toolbar button");
+    }
+
+    if let Some(browser) = get_or_insert_obj(brave, "browser") {
+        browser.insert(String::from("has_seen_welcome_page"), json!(true));
+        debug!("marked welcome page as seen");
+    }
+
+    // custom links could go here
+
+    brave.insert(
+        String::from("default_search_provider_data"),
+        json!({
+              "mirrored_template_url_data": {
+              "alternate_urls": [],
+              "contextual_search_url": "",
+              "created_from_play_api": false,
+              "date_created": "0",
+              "doodle_url": "",
+              "enforced_by_policy": false,
+              "favicon_url": "https://assets.kagi.com/v2/favicon-32x32.png",
+              "featured_by_policy": false,
+              "id": "0",
+              "image_search_branding_label": "",
+              "image_translate_source_language_param_key": "",
+              "image_translate_target_language_param_key": "",
+              "image_translate_url": "",
+              "image_url": "",
+              "image_url_post_params": "",
+              "input_encodings": ["UTF-8"],
+              "is_active": 0,
+              "keyword": "@kagi",
+              "last_modified": "0",
+              "last_visited": "0",
+              "logo_url": "",
+              "new_tab_url": "",
+              "originating_url": "",
+              "policy_origin": 0,
+              "preconnect_to_search_url": false,
+              "prefetch_likely_navigations": false,
+              "prepopulate_id": 0,
+              "safe_for_autoreplace": false,
+              "search_intent_params": [],
+              "search_url_post_params": "",
+              "short_name": "Kagi",
+              "starter_pack_id": 0,
+              "suggestions_url": "https://kagisuggest.com/api/autosuggest?q={searchTerms}",
+              "suggestions_url_post_params": "",
+              "synced_guid": "685774e5-e6da-4393-a71e-d7253d30665d",
+              "url": "https://kagi.com/search?q={searchTerms}",
+              "usage_count": 0
+            }
+        }),
+    );
     brave.insert(String::from("enable_do_not_track"), json!(true));
-    info!("disabled webtorrent and enabled do not track");
+    debug!("set default search provider to kagi and enabled do not track");
 
     if let Some(in_product_help) = get_or_insert_obj(brave, "in_product_help") {
         if let Some(new_badge) = get_or_insert_obj(in_product_help, "new_badge") {
@@ -135,6 +229,17 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         ntp.insert(String::from("shortcust_visible"), json!(false));
         ntp.insert(String::from("use_most_visited_tiles"), json!(false));
         debug!("hid ntp widgets");
+    }
+
+    if let Some(omnibox) = get_or_insert_obj(brave, "omnibox") {
+        omnibox.insert(String::from("prevent_url_elisions"), json!(true));
+        omnibox.insert(String::from("shown_count_history_scope_promo"), json!(false));
+        debug!("disabled omnibox elisions and history scope promo");
+    }
+
+    if let Some(search) = get_or_insert_obj(brave, "search") {
+        search.insert(String::from("suggest_enabled"), json!(true));
+        debug!("enabled search suggestions");
     }
 
     if let Some(privacy_sandbox) = get_or_insert_obj(brave, "privacy_sandbox") {
