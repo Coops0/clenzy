@@ -1,16 +1,16 @@
-use crate::util::{get_or_insert_obj, roaming_data_base, timestamp};
+use crate::util::{get_or_insert_obj, local_data_base, roaming_data_base, timestamp};
 use color_eyre::eyre::{Context, ContextCompat};
 use serde_json::{json, Map, Value};
 use std::{fs, path::PathBuf, sync::LazyLock};
 use tracing::{debug, info, instrument};
 
 pub fn brave_folder() -> Option<PathBuf> {
-    let path = roaming_data_base()?.join("BraveSoftware").join("Brave-Browser");
+    let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
     if path.exists() { Some(path) } else { None }
 }
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
-    let path = roaming_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
     if path.exists() { Some(path) } else { None }
 }
 
