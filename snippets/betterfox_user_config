@@ -2,8 +2,6 @@
 user_pref("browser.contentblocking.category", "standard");
 // PREF: allow websites to ask you for your location
 user_pref("permissions.default.geo", 0);
-// PREF: restore Top Sites on New Tab page
-user_pref("browser.newtabpage.activity-stream.feeds.topsites", true);
 // PREF: remove default Top Sites (Facebook, Twitter, etc.)
 // This does not block you from adding your own.
 user_pref("browser.newtabpage.activity-stream.default.sites", "");
@@ -20,3 +18,5 @@ user_pref("signon.rememberSignons", false);
 // PREF: disable address and credit card manager
 user_pref("extensions.formautofill.addresses.enabled", false);
 user_pref("extensions.formautofill.creditCards.enabled", false);
+// PREF: disable container tabs
+user_pref("privacy.userContext.enabled", false);

@@ -11,32 +11,10 @@ use serde_json::{Map, Value};
 use std::{
     fs, fs::{DirEntry, File}, io, io::{Read, Write}, path::{Path, PathBuf}
 };
+use indicatif::ProgressStyle;
 use tracing::{debug, instrument, warn};
+use ureq::http::header::CONTENT_LENGTH;
 use zip::{write::SimpleFileOptions, ZipWriter};
-
-pub static mut BROWSER_FOUND: bool = false;
-
-#[macro_export]
-macro_rules! try_browser {
-    ($browser:expr, $path:path, $debloat:path) => {
-        if let Some(p) = $path() {
-            if inquire::prompt_confirmation(format!(
-                "Found {} at {}, continue?",
-                $browser,
-                p.display()
-            ))
-            .unwrap_or_default()
-            {
-                unsafe {
-                    util::BROWSER_FOUND = true;
-                }
-
-                $debloat(p)?;
-                tracing::info!("Debloated {}", $browser);
-            }
-        }
-    };
-}
 
 #[instrument(skip(map))]
 pub fn get_or_insert_obj<'a>(
@@ -56,10 +34,6 @@ pub fn get_or_insert_obj<'a>(
     }
 
     ret
-}
-
-pub fn any_browser_found() -> bool {
-    unsafe { BROWSER_FOUND }
 }
 
 pub fn roaming_data_base() -> Option<PathBuf> {
@@ -113,7 +87,7 @@ pub const DEFAULT_FIREFOX_SKIP: &[&str] = &[
     "suggest.sqlite-wal"
 ];
 
-#[instrument(skip(zip, options))]
+#[instrument(skip_all)]
 pub fn add_to_archive(
     zip: &mut ZipWriter<File>,
     entry: io::Result<DirEntry>,
@@ -148,7 +122,7 @@ pub fn add_to_archive(
     Ok(())
 }
 
-#[instrument(skip(zip, options))]
+#[instrument(skip(zip, abs_path, options))]
 fn add_dir_to_archive(
     zip: &mut ZipWriter<File>,
     abs_path: &PathBuf,
@@ -190,4 +164,31 @@ fn add_file_to_archive(
 
     zip.flush()?;
     Ok(())
+}
+
+#[instrument]
+pub fn fetch_text_with_pb(name: &str, url: &str) -> color_eyre::Result<String> {
+    let bar = indicatif::ProgressBar::no_length()
+        .with_style(ProgressStyle::default_spinner().template("{spinner} {msg:.cyan}")?)
+        .with_message(format!("Downloading {name}"));
+
+    let res = ureq::get(url)
+        .call()
+        .wrap_err_with(|| format!("Failed to download {name}"))?;
+
+    if let Some(length) =
+        res.headers().get(CONTENT_LENGTH).and_then(|l| l.to_str().ok()).and_then(|l| l.parse().ok())
+    {
+        bar.set_style(
+            ProgressStyle::default_bar()
+                .template("[{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec} {elapsed:>4}/{eta:4} - {msg:.cyan}")?
+                .progress_chars("=> "));
+        bar.set_length(length);
+    }
+
+    let mut reader = bar.wrap_read(res.into_body().into_reader());
+    let mut s = String::new();
+    reader.read_to_string(&mut s).wrap_err_with(|| format!("Failed to read {name} to string"))?;
+    
+    Ok(s)
 }

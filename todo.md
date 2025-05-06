@@ -1,24 +1,7 @@
 - clap
 	- auto: do not ask for confirmations, just go ahead
 	- have the favorites/links/bookmarks auto setting by default disabled
-	- verbose
 - need to redo linux paths need to setup vm somewhere
-- need to check if program is running
-- firefox beta, nightly, & developer version
-	- https://github.com/yokoffing/Betterfox/blob/main/install.py#L48
-	- NEED to find config to disable a lot of the default show icons and stuff
-		- **can all of this be done thru user.js??**
-		- hide sidebar shit
-		- disable all telemetry
-		- disable new tab bullshit
-		- change to vertical tabs
-		- bookmarks toolbar only on new tabs
-		- disable container tabs (if beta+)
-		- there will be some weird json encoded shit
-- centralized links/bookmarks handler
-	- also update from safari
-- tell to install extensions at the end
-- better zen: https://github.com/yokoffing/Betterfox/blob/main/zen/user.js
 - need to test brave and all of them to make sure no breakage
 
 ### FUTURE:
