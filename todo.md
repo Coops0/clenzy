@@ -2,7 +2,7 @@
 	- auto: do not ask for confirmations, just go ahead
 	- have the favorites/links/bookmarks auto setting by default disabled
 	- verbose
-- need to redo windows paths, linux paths need to setup vm somewhere
+- need to redo linux paths need to setup vm somewhere
 - need to check if program is running
 - firefox beta, nightly, & developer version
 	- https://github.com/yokoffing/Betterfox/blob/main/install.py#L48
@@ -15,7 +15,6 @@
 		- bookmarks toolbar only on new tabs
 		- disable container tabs (if beta+)
 		- there will be some weird json encoded shit
-- for backups, create with timestamp
 - centralized links/bookmarks handler
 	- also update from safari
 - tell to install extensions at the end
@@ -30,3 +29,4 @@
 - using only brave default profile isn't the best solution
 - disable setting vertical tabs wherever i can
 - interactive ui for the clap settings
+- notarize macos app

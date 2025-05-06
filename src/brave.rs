@@ -1,25 +1,25 @@
-use crate::util::{data_base, get_or_insert_obj};
+use crate::util::{get_or_insert_obj, roaming_data_base, timestamp};
 use color_eyre::eyre::{Context, ContextCompat};
-use color_eyre::Help;
 use serde_json::{json, Map, Value};
-use std::cell::LazyCell;
-use std::io::Lines;
-use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::{fs, path::PathBuf, sync::LazyLock};
 use tracing::{debug, info, instrument};
 
 pub fn brave_folder() -> Option<PathBuf> {
-    let path = data_base()?.join("BraveSoftware").join("Brave-Browser");
+    let path = roaming_data_base()?.join("BraveSoftware").join("Brave-Browser");
     if path.exists() { Some(path) } else { None }
 }
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
-    let path = data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    let path = roaming_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
     if path.exists() { Some(path) } else { None }
 }
 
 #[instrument]
-pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
+pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
+    if cfg!(target_os = "windows") {
+        path = path.join("User Data")
+    }
+
     let default = path.join("Default");
     preferences(&default)?;
     chrome_feature_state(&default)?;
@@ -30,12 +30,12 @@ pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
 #[instrument]
 fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
-    let backup = path.with_extension("bak");
+    let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
-    std::fs::copy(&path, &backup)?;
+    fs::copy(&path, &backup)?;
     info!("backed up brave preferences to {}", backup.display());
 
-    let prefs_str = std::fs::read_to_string(&path);
+    let prefs_str = fs::read_to_string(&path);
     let mut prefs = serde_json::from_str::<Value>(&prefs_str?)?;
 
     let prefs_map = prefs.as_object_mut().context("failed to parse preferences as an object")?;
@@ -127,7 +127,7 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
                 { "built_in_item_type": 2, "type": 0 },
                 { "built_in_item_type": 3, "type": 0 },
                 { "built_in_item_type": 4, "type": 0 }
-            ]),
+            ])
         );
         sidebar.insert(String::from("sidebar_show_option"), json!(3));
         debug!("hid sidebar items");
@@ -168,7 +168,7 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
                  { "isMostVisited": true, "title": "ChatGPT", "url": "http://chatgpt.com/" },
                  { "isMostVisited": true, "title": "Instagram", "url": "http://instagram.com/" },
                  { "isMostVisited": true, "title": "NextDNS", "url": "http://my.nextdns.com/" }
-            ]),
+            ])
         );
     }
 
@@ -224,23 +224,23 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
     }
 
     let prefs_str = serde_json::to_string(&prefs)?;
-    std::fs::write(&path, prefs_str)
+    fs::write(&path, prefs_str)
         .wrap_err_with(|| format!("failed to write preferences to {}", path.display()))
 }
 
-const DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
+static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
     include_str!("../snippets/disabled_features").lines().filter(|line| !line.is_empty()).collect()
 });
 
 #[instrument]
 fn chrome_feature_state(root: &PathBuf) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
-    let backup = path.with_extension("bak");
+    let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
 
-    let _ = std::fs::copy(&path, &backup);
+    let _ = fs::copy(&path, &backup);
     info!("backed up brave chrome feature state to {}", backup.display());
 
-    let prefs_str = std::fs::read_to_string(&path).unwrap_or_default();
+    let prefs_str = fs::read_to_string(&path).unwrap_or_default();
     let mut prefs_parsed =
         serde_json::from_str::<Value>(&prefs_str).unwrap_or_else(|_| Value::Object(Map::new()));
 
@@ -261,7 +261,7 @@ fn chrome_feature_state(root: &PathBuf) -> color_eyre::Result<()> {
     }
 
     let prefs_str = serde_json::to_string(&prefs)?;
-    std::fs::write(&path, prefs_str)
+    fs::write(&path, prefs_str)
         .wrap_err_with(|| format!("failed to write preferences to {}", path.display()))?;
 
     info!("disabled chrome features");

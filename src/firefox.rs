@@ -1,12 +1,13 @@
-use crate::util::data_base;
-use color_eyre::eyre::{bail, Context, ContextCompat};
+use crate::util::{add_to_archive, roaming_data_base, timestamp, DEFAULT_FIREFOX_SKIP};
+use color_eyre::eyre::{Context, ContextCompat};
+use fs::File;
 use indicatif::ProgressStyle;
-use std::collections::HashMap;
-use std::io::Read;
-use std::path::PathBuf;
-use std::sync::OnceLock;
-use tracing::instrument;
+use std::{
+    fmt::Display, fs, io::Read, path::{Path, PathBuf}, sync::OnceLock
+};
+use tracing::{info_span, instrument, warn};
 use ureq::http::header::CONTENT_LENGTH;
+use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 static BETTER_FOX_USER_JS: OnceLock<String> = OnceLock::new();
 fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
@@ -41,21 +42,34 @@ fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
 }
 
 pub fn firefox_folder() -> Option<PathBuf> {
-    let path = data_base()?.join("firefox");
+    let path = if cfg!(target_os = "macos") {
+        roaming_data_base()?.join("Firefox")
+    } else if cfg!(target_os = "windows") {
+        roaming_data_base()?.join("Mozilla").join("Firefox")
+    } else {
+        roaming_data_base()?.join("firefox")
+    };
+
     if path.exists() { Some(path) } else { None }
 }
 
 #[derive(Debug)]
 struct Profile<'a> {
     name: &'a str,
-    path: &'a str,
+    path: PathBuf
+}
+
+impl Display for Profile<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[instrument]
-pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
-    let profiles_str = std::fs::read_to_string(path.join("profiles.ini"))
-        .wrap_err("Failed to read profiles.ini")?;
-    let mut profiles_doc: toml::Value =
+pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
+    let profiles_str =
+        fs::read_to_string(path.join("profiles.ini")).wrap_err("Failed to read profiles.ini")?;
+    let profiles_doc: toml::Value =
         toml::from_str(&profiles_str).wrap_err("Failed to parse profiles.ini")?;
 
     let profiles: (Vec<_>, Vec<_>) = profiles_doc
@@ -67,7 +81,7 @@ pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
             Some((
                 t.get_key_value("Name")?.1.as_str()?,
                 t.get_key_value("Path")?.1.as_str()?,
-                t.get_key_value("Default").and_then(|v| v.1.as_bool()).unwrap_or_default(),
+                t.get_key_value("Default").and_then(|v| v.1.as_bool()).unwrap_or_default()
             ))
         })
         .partition(|(_, _, is_default)| *is_default);
@@ -77,51 +91,114 @@ pub fn debloat(path: &PathBuf) -> color_eyre::Result<()> {
     let profiles = [profiles.0, profiles.1]
         .concat()
         .into_iter()
-        .map(|(name, path, _)| (name, path))
-        .collect::<HashMap<_, _>>();
+        .map(|(name, profile_path, _)| Profile { name, path: path.join(profile_path) })
+        .filter(|profile| {
+            if !profile.path.exists() {
+                warn!(path = %profile.path.display(), "Profile does not exist");
+                return false;
+            }
+
+            let children = match fs::read_dir(&profile.path) {
+                Ok(c) => c.count(),
+                Err(why) => {
+                    warn!(path = %profile.path.display(), err = %why, "Failed to read profile directory");
+                    return false;
+                }
+            };
+
+            // If no files or only times.json
+            if children < 2 {
+                warn!(path = %profile.path.display(), "Profile is empty");
+                return false;
+            }
+
+            true
+        })
+        .collect::<Vec<_>>();
 
     if profiles.is_empty() {
-        bail!("No profiles found in profiles.ini");
+        warn!("No FireFox profiles found in profiles.ini");
+        return Ok(());
     }
 
     let profiles = inquire::MultiSelect::new(
         &format!("Which profile{} to debloat?", if profiles.len() > 1 { "s" } else { "" }),
-        profiles.keys().collect::<Vec<_>>(),
+        profiles
     )
     .with_default(&(0..defaults).collect::<Vec<_>>())
     .prompt()
     .wrap_err("Failed to select profiles")?
     .into_iter()
-    .map(|name| profiles.get_key_value(name).unwrap())
-    .map(|(name, path)| Profile { name, path })
     .collect::<Vec<_>>();
 
     if profiles.is_empty() {
-        bail!("No profiles selected");
+        warn!("No FireFox profiles selected");
+        return Ok(());
     }
 
     for profile in profiles {
-        user_js_profile(path, &profile).wrap_err_with(|| {
-            format!("Failed to configure user.js for profile {}", profile.name)
-        })?;
+        let span = info_span!("Debloating profile", profile = %profile);
+        let _enter = span.enter();
+
+        if let Err(why) = backup_profile(&profile) {
+            warn!(err = ?why, "Failed to backup profile");
+            continue;
+        }
+
+        if let Err(why) = user_js_profile(&profile) {
+            warn!(err = ?why, "Failed to install user.js");
+        }
     }
 
     Ok(())
 }
 
-// TODO backup user profile dir
 #[instrument]
-fn user_js_profile(root: &PathBuf, profile: &Profile) -> color_eyre::Result<()> {
-    let user_js_path = root.join(profile.path).join("user.js");
-    if user_js_path.exists() {
-        if !inquire::prompt_confirmation(format!(
-            "user.js already exists for profile {}. Do you want to overwrite it?",
-            profile.name
+fn backup_profile(profile: &Profile) -> color_eyre::Result<()> {
+    // Canonicalize to convert to an absolute path just in case, so we can get parent dir
+    let profiles_path = fs::canonicalize(&profile.path)
+        .map_err(color_eyre::eyre::Error::from)
+        .and_then(|p| p.parent().map(Path::to_path_buf).context("Parent was None"))
+        .unwrap_or_else(|why| {
+            warn!(path = %profile.path.display(), err = %why, "Failed to get parent directory, falling back to profile path");
+            profile.path.clone()
+        });
+
+    let backup_path =
+        profiles_path.join(format!("{profile}-backup-{}", timestamp())).with_extension("zip");
+
+    let entries = fs::read_dir(&profile.path)?;
+    let mut zip =
+        ZipWriter::new(File::create(&backup_path).wrap_err("Failed to create backup zip file")?);
+
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+
+    for entry in entries {
+        if let Err(why) = add_to_archive(
+            &mut zip,
+            entry,
+            &profile.path,
+            &options,
+            // skip these unnecessary huge dirs
+            DEFAULT_FIREFOX_SKIP
+        ) {
+            warn!(err = ?why, "Failed to add entry to archive");
+        }
+    }
+
+    zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
+}
+
+#[instrument]
+fn user_js_profile(profile: &Profile) -> color_eyre::Result<()> {
+    let user_js_path = profile.path.join("user.js");
+    if user_js_path.exists()
+        && !inquire::prompt_confirmation(format!(
+            "user.js already exists for profile {profile}. Do you want to overwrite it?"
         ))
         .unwrap_or_default()
-        {
-            return Ok(());
-        }
+    {
+        return Ok(());
     }
 
     let user_js = get_better_fox_user_js()?;
@@ -129,16 +206,14 @@ fn user_js_profile(root: &PathBuf, profile: &Profile) -> color_eyre::Result<()> 
         let mut lines = user_js.lines().collect::<Vec<_>>();
         let start_my_overrides_pos = lines
             .iter()
-            .rposition(|l| l.trim().starts_with(" * START: MY OVERRIDE"))
+            .rposition(|l| l.trim().starts_with("* START: MY OVERRIDE"))
             .context("Failed to find start of 'my overrides'")?;
 
         // Skip comments and a blank space
         let start_my_overrides_pos = start_my_overrides_pos + 4;
         lines.insert(start_my_overrides_pos, include_str!("../snippets/betterfox_user_config"));
-        // todo windows \r\n
         Ok::<String, color_eyre::eyre::Error>(lines.join::<&str>("\n"))
     }?;
 
-    std::fs::write(&user_js_path, configured_user_js)
-        .wrap_err_with(|| format!("Failed to write user.js for profile {}", profile.name))
+    fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }

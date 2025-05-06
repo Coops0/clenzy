@@ -4,7 +4,7 @@ mod util;
 
 use std::env;
 use tracing::level_filters::LevelFilter;
-use tracing::warn;
+use tracing::{info, warn};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
@@ -34,6 +34,8 @@ fn main() -> color_eyre::Result<()> {
     if !util::any_browser_found() {
         warn!("no browsers were found");
     }
+    
+    info!("done");
 
     Ok(())
 }
