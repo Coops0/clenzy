@@ -1,5 +1,8 @@
+use crate::engines::firefox_like::util_confirm_if_exists;
 use crate::{
-    engines, engines::firefox_like::Profile, util::{fetch_text_with_pb, roaming_data_base}
+    engines,
+    engines::firefox_like::Profile,
+    util::{fetch_text_with_pb, roaming_data_base},
 };
 use color_eyre::eyre::{Context, ContextCompat};
 use std::{fs, path::PathBuf, sync::OnceLock};
@@ -10,7 +13,7 @@ fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
     if BETTER_FOX_USER_JS.get().is_none() {
         let s = fetch_text_with_pb(
             "Betterfox User.js",
-            "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js"
+            "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js",
         )?;
         BETTER_FOX_USER_JS.set(s).unwrap()
     }
@@ -40,17 +43,12 @@ fn user_js_profile(profile: &Profile) -> color_eyre::Result<()> {
     let custom_overrides = &[
         include_str!("../snippets/betterfox_user_config"),
         // These should be optional eventually
-        include_str!("../snippets/firefox_user_js_extra")
+        include_str!("../snippets/firefox_user_js_extra"),
     ]
     .join("\n");
 
     let user_js_path = profile.path.join("user.js");
-    if user_js_path.exists()
-        && !inquire::prompt_confirmation(format!(
-            "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
-        ))
-        .unwrap_or_default()
-    {
+    if util_confirm_if_exists(profile, &user_js_path) {
         return Ok(());
     }
 

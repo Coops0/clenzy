@@ -1,8 +1,5 @@
-- clap
-	- auto: do not ask for confirmations, just go ahead
-	- have the favorites/links/bookmarks auto setting by default disabled
 - need to redo linux paths need to setup vm somewhere
-- need to test brave and all of them to make sure no breakage
+- firefox collapsing sidebar at start (maybe fixed?)
 
 ### FUTURE:
 - auto install extensions? (ublock (auto configure too???), kagi, 1pass)

@@ -16,7 +16,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 #[derive(Parser, Default)]
 pub struct Args {
     #[clap(short, long, default_value_t = false)]
-    pub verbose: bool
+    pub verbose: bool,
+    
+    // Assume yes to all prompts
+    #[clap[short = 'Y', default_value_t = false]]
+    pub autoconfirm: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -41,7 +45,7 @@ fn main() -> color_eyre::Result<()> {
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
 
-    let browsers: [(&str, Option<PathBuf>, fn(PathBuf) -> color_eyre::Result<()>); 4] = [
+    let browsers: [BrowserTuple; 4] = [
         ("Brave", brave::brave_folder(), brave::debloat),
         ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
@@ -59,10 +63,14 @@ fn main() -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    let browsers = MultiSelect::new("Select browsers to debloat", browsers)
-        .with_all_selected_by_default()
-        .prompt()
-        .unwrap_or_default();
+    let browsers = if args.autoconfirm {
+        browsers
+    } else {
+        MultiSelect::new("Select browsers to debloat", browsers)
+            .with_all_selected_by_default()
+            .prompt()
+            .unwrap_or_default()
+    };
 
     if browsers.is_empty() {
         return Ok(());
@@ -101,6 +109,8 @@ fn main() -> color_eyre::Result<()> {
 
     Ok(())
 }
+
+type BrowserTuple = (&'static str, Option<PathBuf>, fn(PathBuf) -> color_eyre::Result<()>);
 
 struct Browser {
     name: &'static str,

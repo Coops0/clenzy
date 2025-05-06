@@ -150,7 +150,6 @@ dependencies = [
  "indicatif",
  "inquire",
  "rust-ini",
- "serde",
  "serde_json",
  "sysinfo",
  "tracing",

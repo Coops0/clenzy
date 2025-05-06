@@ -2,6 +2,7 @@ use crate::util::{get_or_insert_obj, local_data_base, timestamp};
 use color_eyre::eyre::{Context, ContextCompat};
 use serde_json::{json, Map, Value};
 use std::{fs, path::PathBuf, sync::LazyLock};
+use std::path::Path;
 use tracing::{debug, info, instrument};
 
 pub fn brave_folder() -> Option<PathBuf> {
@@ -34,7 +35,7 @@ macro_rules! s {
 }
 
 #[instrument(skip(root))]
-fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
+fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
     let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
@@ -149,6 +150,11 @@ fn preferences(root: &PathBuf) -> color_eyre::Result<()> {
         debug!("enabled vertical tabs");
     }
 
+    if let Some(wallet) = get_or_insert_obj(brave, "wallet") {
+        wallet.insert(s!("show_wallet_icon_on_toolbar"), json!(false));
+        debug!("hid wallet button");
+    }
+
     brave.insert(s!("tabs_search_show"), json!(false));
     brave.insert(s!("webtorrent_enabled"), json!(false));
     info!("disabled webtorrent and hid tabs search");
@@ -228,7 +234,7 @@ static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
 });
 
 #[instrument(skip(root))]
-fn chrome_feature_state(root: &PathBuf) -> color_eyre::Result<()> {
+fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
 

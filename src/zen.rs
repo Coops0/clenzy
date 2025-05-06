@@ -1,8 +1,7 @@
-use crate::{
-    engines, engines::firefox_like::Profile, util::{fetch_text_with_pb, roaming_data_base}
-};
-use std::{fs, path::PathBuf, sync::OnceLock};
+use crate::engines::firefox_like::util_confirm_if_exists;
+use crate::{engines, engines::firefox_like::Profile, util::{fetch_text_with_pb, roaming_data_base}};
 use color_eyre::eyre::Context;
+use std::{fs, path::PathBuf, sync::OnceLock};
 use tracing::instrument;
 
 static BETTER_ZEN_USER_JS: OnceLock<String> = OnceLock::new();
@@ -31,12 +30,7 @@ pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
 #[instrument]
 fn user_js_profile(profile: &Profile) -> color_eyre::Result<()> {
     let user_js_path = profile.path.join("user.js");
-    if user_js_path.exists()
-        && !inquire::prompt_confirmation(format!(
-            "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
-        ))
-        .unwrap_or_default()
-    {
+    if util_confirm_if_exists(profile, &user_js_path) {
         return Ok(());
     }
     
