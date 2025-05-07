@@ -41,12 +41,10 @@ pub fn get_or_insert_obj<'a>(
 }
 
 pub fn roaming_data_base() -> Option<PathBuf> {
-    if cfg!(target_os = "macos") {
+    if cfg!(target_os = "macos") || cfg!(target_os = "windows") {
         dirs::data_dir()
-    } else if cfg!(target_os = "windows") {
-        return dirs::data_dir();
     } else {
-        return dirs::config_dir();
+        dirs::home_dir()
     }
 }
 

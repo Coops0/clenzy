@@ -34,7 +34,7 @@ macro_rules! s {
     };
 }
 
-#[instrument(skip(root))]
+#[instrument(skip_all)]
 fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
     let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
@@ -204,9 +204,10 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     if let Some(omnibox) = get_or_insert_obj(prefs_map, "omnibox") {
+        // show entire URL always
         omnibox.insert(s!("prevent_url_elisions"), json!(true));
         omnibox.insert(s!("shown_count_history_scope_promo"), json!(false));
-        debug!("disabled omnibox elisions and history scope promo");
+        debug!("enabled showing full url and history scope promo");
     }
 
     if let Some(search) = get_or_insert_obj(prefs_map, "search") {

@@ -23,10 +23,10 @@ impl Display for Profile<'_> {
     }
 }
 
-#[instrument(skip(path, install_user_js))]
-pub fn debloat<I>(path: PathBuf, install_user_js: I) -> color_eyre::Result<()>
+#[instrument(skip_all)]
+pub fn debloat<'a, F>(path: PathBuf, fetch_user_js: F, additional_snippets: &str) -> color_eyre::Result<()>
 where
-    I: Fn(&Profile) -> color_eyre::Result<()>,
+    F: Fn() -> color_eyre::Result<&'a str>,
 {
     let profiles_str =
         fs::read_to_string(path.join("profiles.ini")).wrap_err("Failed to read profiles.ini")?;
@@ -67,7 +67,6 @@ where
 
             // If no files or only times.json
             if children < 2 {
-                warn!(path = %profile.path.display(), "Profile is empty");
                 return false;
             }
 
@@ -83,18 +82,17 @@ where
     let profiles = if ARGS.get().unwrap().autoconfirm {
         profiles
     } else if profiles.len() == 1 {
+        vec![profiles.remove(0)]
+    } else {
         inquire::MultiSelect::new("Which profiles to debloat?", profiles)
             .with_default(&(0..defaults).collect::<Vec<_>>())
             .prompt()
             .wrap_err("Failed to select profiles")?
             .into_iter()
             .collect::<Vec<_>>()
-    } else {
-        vec![profiles.remove(0)]
     };
 
     if profiles.is_empty() {
-        warn!("No profiles selected");
         return Ok(());
     }
 
@@ -107,7 +105,7 @@ where
             continue;
         }
 
-        if let Err(why) = install_user_js(&profile) {
+        if let Err(why) = install_user_js(&profile, &fetch_user_js, additional_snippets) {
             warn!(err = ?why, "Failed to install user.js");
         }
     }
@@ -161,7 +159,41 @@ fn backup_profile(profile: &Profile) -> color_eyre::Result<()> {
     zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
 }
 
-pub fn util_confirm_if_exists(profile: &Profile, path: &Path) -> bool {
+#[instrument(skip_all)]
+fn install_user_js<'a, F>(
+    profile: &Profile,
+    fetch_user_js: F,
+    additional_snippets: &str,
+) -> color_eyre::Result<()>
+where
+    F: Fn() -> color_eyre::Result<&'a str>,
+{
+    let user_js_path = profile.path.join("user.js");
+    if confirm_user_js_overwrite(profile, &user_js_path) {
+        return Ok(());
+    }
+
+    let configured_user_js = {
+        let user_js = fetch_user_js()?;
+        let mut lines = user_js.lines().collect::<Vec<_>>();
+        let start_my_overrides_pos = lines
+            .iter()
+            .rposition(|l| l.trim().starts_with("* START: MY OVERRIDE"))
+            .context("Failed to find start of 'my overrides'")?;
+
+        // Skip comments and a blank space
+        let start_my_overrides_pos = start_my_overrides_pos + 4;
+
+        if !additional_snippets.is_empty() {
+            lines.insert(start_my_overrides_pos, additional_snippets);
+        }
+        Ok::<String, color_eyre::eyre::Error>(lines.join::<&str>("\n"))
+    }?;
+
+    fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
+}
+
+fn confirm_user_js_overwrite(profile: &Profile, path: &Path) -> bool {
     if path.exists()
         && !ARGS.get().unwrap().autoconfirm
         && !inquire::prompt_confirmation(format!(

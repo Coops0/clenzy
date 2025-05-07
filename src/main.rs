@@ -1,13 +1,17 @@
 mod brave;
-mod engines;
 mod firefox;
+mod firefox_common;
 mod util;
 mod zen;
 
 use clap::Parser;
 use inquire::MultiSelect;
 use std::{
-    env, fmt::Display, io::{stdin, Read}, path::PathBuf, sync::OnceLock
+    env,
+    fmt::Display,
+    io::{stdin, Read},
+    path::PathBuf,
+    sync::OnceLock,
 };
 use sysinfo::System;
 use tracing::{info, level_filters::LevelFilter, warn};
@@ -17,10 +21,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 pub struct Args {
     #[clap(short, long, default_value_t = false)]
     pub verbose: bool,
-    
+
     // Assume yes to all prompts
     #[clap[short = 'Y', default_value_t = false]]
-    pub autoconfirm: bool
+    pub autoconfirm: bool,
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -49,7 +53,7 @@ fn main() -> color_eyre::Result<()> {
         ("Brave", brave::brave_folder(), brave::debloat),
         ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
-        ("Zen", zen::zen_folder(), zen::debloat)
+        ("Zen", zen::zen_folder(), zen::debloat),
     ];
 
     let browsers = browsers
@@ -101,7 +105,7 @@ fn main() -> color_eyre::Result<()> {
 
         match (browser.debloat)(browser.folder) {
             Ok(_) => info!("Debloated {}", browser.name),
-            Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name)
+            Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name),
         }
     }
 
@@ -115,7 +119,7 @@ type BrowserTuple = (&'static str, Option<PathBuf>, fn(PathBuf) -> color_eyre::R
 struct Browser {
     name: &'static str,
     folder: PathBuf,
-    debloat: fn(PathBuf) -> color_eyre::Result<()>
+    debloat: fn(PathBuf) -> color_eyre::Result<()>,
 }
 
 impl Display for Browser {
