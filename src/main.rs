@@ -53,7 +53,7 @@ fn main() -> color_eyre::Result<()> {
             fmt_layer.with_target(false).with_level(true).with_file(false).with_line_number(false);
     }
 
-    tracing_subscriber::registry().with(filter).with(fmt_layer.pretty()).init();
+    tracing_subscriber::registry().with(filter).with(fmt_layer).init();
 
     let browsers: [BrowserTuple; 4] = [
         ("Brave", brave::brave_folder(), brave::debloat),

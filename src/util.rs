@@ -214,7 +214,7 @@ pub fn warn_if_process_is_running(system: &mut System, name: &str) -> bool {
         .values()
         .filter_map(|p| {
             let name = p.name().to_str()?;
-            if name.to_lowercase().contains(&lower_name) { None } else { Some(name) }
+            if name.to_lowercase().contains(&lower_name) { Some(name) } else { None }
         })
         .collect::<Vec<_>>();
 
