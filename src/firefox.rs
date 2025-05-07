@@ -28,7 +28,7 @@ pub fn firefox_folder() -> Option<PathBuf> {
     if path.exists() { Some(path) } else { None }
 }
 
-#[instrument(skip_all)]
+#[instrument]
 pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
     let mut custom_overrides = vec![
         include_str!("../snippets/betterfox_user_config"),

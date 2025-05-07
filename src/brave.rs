@@ -27,7 +27,7 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
 
     let profiles = match try_to_get_profiles(&path) {
         Ok(profiles) => {
-            debug!(profiles = %profiles.len(), "Found profiles");
+            debug!(len = %profiles.len(), "Found profiles");
             profiles
         }
         Err(why) => {
@@ -161,7 +161,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
     fs::copy(&path, &backup)?;
-    info!("Backed up brave preferences to {}", backup.display());
+    info!("Backed up Brave preferences to {}", backup.display());
     debug!("backup dir: {}", backup.display());
 
     let prefs_str = fs::read_to_string(&path);

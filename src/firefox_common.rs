@@ -8,7 +8,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use tracing::{debug, info_span, instrument, warn};
+use tracing::{debug, info, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 #[derive(Debug)]
@@ -128,6 +128,7 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
     }
 
     debug!("finished creating backup zip file");
+    info!("Backup created for user profile");
     zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
 }
 

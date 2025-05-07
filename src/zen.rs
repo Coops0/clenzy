@@ -20,7 +20,7 @@ pub fn zen_folder() -> Option<PathBuf> {
     if path.exists() { Some(path) } else { None }
 }
 
-#[instrument(skip_all)]
+#[instrument]
 pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
     // Not all of these will be used but some are
     let custom_overrides = include_str!("../snippets/betterfox_user_config");

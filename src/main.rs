@@ -23,10 +23,6 @@ pub struct Args {
     #[clap(short = 'Y', default_value_t = false)]
     pub auto_confirm: bool,
 
-    // Bypass running process check
-    #[clap(short = 'B', long = "bypass-running", default_value_t = false)]
-    pub bypass_running: bool,
-
     // Disable enabling vertical tabs
     #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
     pub vertical_tabs: bool
@@ -92,21 +88,9 @@ fn main() -> color_eyre::Result<()> {
         let span = info_span!("debloat", browser = %browser.name);
         let _enter = span.enter();
 
-        let mut detections = 0u8;
-        loop {
-            if !warn_if_process_is_running(&mut system, browser.name) // Returns true if the process detected
-                || ARGS.get().unwrap().auto_confirm
-                || ARGS.get().unwrap().bypass_running
-            {
-                break;
-            }
-
-            detections += 1;
-            if detections >= 3 {
-                warn!("Browser found still running, continuing anyway");
-                break;
-            }
-
+        if !ARGS.get().unwrap().auto_confirm
+            && warn_if_process_is_running(&mut system, browser.name)
+        {
             let _ = stdin().read_exact(&mut [0_u8]);
         }
 
