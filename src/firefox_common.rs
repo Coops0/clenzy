@@ -1,12 +1,11 @@
-use crate::util::{add_to_archive, select_profiles, timestamp, validate_profile_dir, DEFAULT_FIREFOX_SKIP};
-use crate::ARGS;
+use crate::{
+    archive::add_to_archive, util::{select_profiles, timestamp, validate_profile_dir}, ARGS
+};
 use color_eyre::eyre::{Context, ContextCompat};
 use fs::File;
 use ini::Ini;
 use std::{
-    fmt::Display,
-    fs,
-    path::{Path, PathBuf},
+    fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
 use tracing::{debug, info, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
@@ -14,7 +13,7 @@ use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 #[derive(Debug)]
 pub struct FirefoxProfile<'a> {
     pub name: &'a str,
-    pub path: PathBuf,
+    pub path: PathBuf
 }
 
 impl Display for FirefoxProfile<'_> {
@@ -27,10 +26,10 @@ impl Display for FirefoxProfile<'_> {
 pub fn debloat<'a, F>(
     path: PathBuf,
     fetch_user_js: F,
-    additional_snippets: &str,
+    additional_snippets: &str
 ) -> color_eyre::Result<()>
 where
-    F: Fn() -> color_eyre::Result<&'a str>,
+    F: Fn() -> color_eyre::Result<&'a str>
 {
     let profiles_str =
         fs::read_to_string(path.join("profiles.ini")).wrap_err("Failed to read profiles.ini")?;
@@ -46,7 +45,7 @@ where
             Some((
                 prop.get("Name")?,
                 prop.get("Path")?,
-                prop.get("Default").and_then(|d| d.parse::<u8>().ok()).unwrap_or_default() == 1,
+                prop.get("Default").and_then(|d| d.parse::<u8>().ok()).unwrap_or_default() == 1
             ))
         })
         .partition(|(_, _, is_default)| *is_default);
@@ -93,6 +92,10 @@ where
     Ok(())
 }
 
+static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
+    include_str!("../snippets/default_firefox_skip").lines().filter(|l| !l.is_empty()).collect()
+});
+
 #[instrument(skip(profile), fields(profile = %profile))]
 fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
     // Canonicalize to convert to an absolute path just in case, so we can get parent dir
@@ -121,7 +124,7 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
             &profile.path,
             &options,
             // skip these unnecessary huge dirs
-            DEFAULT_FIREFOX_SKIP,
+            &DEFAULT_FIREFOX_SKIP
         ) {
             warn!(err = ?why, "Failed to add entry to archive");
         }
@@ -136,13 +139,13 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
 fn install_user_js<'a, F>(
     profile: &FirefoxProfile,
     fetch_user_js: F,
-    additional_snippets: &str,
+    additional_snippets: &str
 ) -> color_eyre::Result<()>
 where
-    F: Fn() -> color_eyre::Result<&'a str>,
+    F: Fn() -> color_eyre::Result<&'a str>
 {
     let user_js_path = profile.path.join("user.js");
-    if should_skip_overwriting_userjs(profile, &user_js_path) {
+    if prompt_should_skip_overwrite_user_js(profile, &user_js_path) {
         debug!(path = %user_js_path.display(), "Skipping user.js overwrite");
         return Ok(());
     }
@@ -173,7 +176,7 @@ where
     fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }
 
-fn should_skip_overwriting_userjs(profile: &FirefoxProfile, path: &Path) -> bool {
+fn prompt_should_skip_overwrite_user_js(profile: &FirefoxProfile, path: &Path) -> bool {
     if path.exists()
         && !ARGS.get().unwrap().auto_confirm
         && !inquire::prompt_confirmation(format!(

@@ -1,5 +1,6 @@
-use crate::util::{fetch_text, roaming_data_base};
-use crate::ARGS;
+use crate::{
+    firefox_common, util::{fetch_text, roaming_data_base}, ARGS
+};
 use std::{path::PathBuf, sync::OnceLock};
 use tracing::{instrument, warn};
 
@@ -8,7 +9,7 @@ fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
     if BETTER_FOX_USER_JS.get().is_none() {
         let s = fetch_text(
             "Betterfox User.js",
-            "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js",
+            "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js"
         )?;
         BETTER_FOX_USER_JS.set(s).unwrap()
     }
@@ -40,5 +41,5 @@ pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
         custom_overrides.push(include_str!("../snippets/firefox_user_js_vert_tabs"));
     }
 
-    crate::firefox_common::debloat(path, get_better_fox_user_js, &custom_overrides.join("\n"))
+    firefox_common::debloat(path, get_better_fox_user_js, &custom_overrides.join("\n"))
 }

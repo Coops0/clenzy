@@ -1,5 +1,7 @@
 [package]
 name = "browser-debloat"
+authors = ["Cooper Hanessian"]
+homepage = "https://github.com/Coops0/browser-debloat"
 edition = "2024"
 
 [dependencies]
@@ -12,6 +14,12 @@ serde_json = "1.0.140"
 tracing = { version = "0.1.41", features = ["attributes"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 ureq = "3.0.11"
-zip = { version = "2.6.1", default-features = false, features = ["deflate-flate2", "deflate"] }
+zip = { version = "2.6.1", default-features = false, features = ["deflate", "deflate-flate2"] }
 sysinfo = { version = "0.35.0" }
 clap = { version = "4.5.37", features = ["derive"] }
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1

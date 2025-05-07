@@ -1,4 +1,5 @@
 # TODO
+- good readme with gif
 
 
 ### FUTURE:

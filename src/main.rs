@@ -3,8 +3,9 @@ mod firefox;
 mod firefox_common;
 mod util;
 mod zen;
+mod archive;
 
-use crate::util::warn_if_process_is_running;
+use crate::util::get_matching_running_processes;
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
 use std::{
@@ -65,7 +66,7 @@ fn main() -> color_eyre::Result<()> {
         .collect::<Vec<_>>();
 
     if browsers.is_empty() {
-        warn!("No browsers found");
+        no_browsers_msg(&browsers);
         return Ok(());
     }
 
@@ -74,7 +75,9 @@ fn main() -> color_eyre::Result<()> {
     } else {
         MultiSelect::new("Select browsers to debloat", browsers)
             .with_all_selected_by_default()
-            .prompt()
+            .prompt_skippable()
+            .ok()
+            .flatten()
             .unwrap_or_default()
     };
 
@@ -88,14 +91,10 @@ fn main() -> color_eyre::Result<()> {
         let span = info_span!("debloat", browser = %browser.name);
         let _enter = span.enter();
 
-        if !ARGS.get().unwrap().auto_confirm
-            && warn_if_process_is_running(&mut system, browser.name)
-        {
-            let _ = stdin().read_exact(&mut [0_u8]);
-        }
+        check_if_running(&mut system, browser.name);
 
         match (browser.debloat)(browser.folder) {
-            Ok(_) => info!("Debloated {}", browser.name),
+            Ok(_) => info!("Finished debloating browser"),
             Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name)
         }
     }
@@ -116,4 +115,35 @@ impl Display for Browser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
+}
+
+fn check_if_running(system: &mut System, name: &str) {
+    if ARGS.get().unwrap().auto_confirm {
+        return;
+    }
+
+    let processes = get_matching_running_processes(system, name);
+    if processes.is_empty() {
+        return;
+    }
+
+    warn!(processes, "Please close all instances before debloating");
+    let _ = stdin().read_exact(&mut [0_u8]);
+
+    if !get_matching_running_processes(system, name).is_empty() {
+        warn!("Process still running, continuing anyway");
+    }
+}
+fn no_browsers_msg(browsers: &[Browser]) {
+    info!("No supported browsers found on your computer.");
+    let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");
+    info!("The list of supported browsers is: {supported}.");
+
+    if cfg!(not(any(target_os = "windows", target_os = "macos"))) {
+        warn!("You may have an unsupported OS ({}).", env::consts::OS);
+    }
+
+    info!(
+        "If you have any of these installed, please open an issue at https://github.com/Coops0/browser-debloat/issues"
+    );
 }

@@ -1,0 +1,15 @@
+storage
+security_state
+minidumps
+gmp-widevinecdm
+gmp-gmpopenh264
+extensions
+crashes
+sessionstore-logs
+saved-telemetry-pings
+domain_to_categories.sqlite
+favicons.sqlite
+suggest.sqlite-wal
+places.suggest.sqlite-wal
+favicons.sqlite-wal
+suggest.sqlite-wal
