@@ -32,5 +32,6 @@ pub fn zen_snap_folder() -> Option<PathBuf> {
 pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
     // Not all of these will be used but some are
     let custom_overrides = include_str!("../snippets/betterfox_user_config");
-    firefox_common::debloat(path, get_better_zen_user_js, custom_overrides)
+    let _ = firefox_common::debloat(path, get_better_zen_user_js, custom_overrides)?;
+    Ok(())
 }

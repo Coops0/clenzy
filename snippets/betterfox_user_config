@@ -6,6 +6,7 @@ user_pref("permissions.default.geo", 0);
 // This does not block you from adding your own.
 user_pref("browser.newtabpage.activity-stream.default.sites", "");
 // PREF: remove sponsored content on New Tab page
+// NOTE: These seem to be a Betterfox default now
 user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false); // Sponsored shortcuts
 user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false); // Recommended by Pocket
 user_pref("browser.newtabpage.activity-stream.showSponsored", false); // Sponsored Stories

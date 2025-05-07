@@ -1,9 +1,12 @@
 use crate::{
-    firefox_common, util::{fetch_text, roaming_data_base}, ARGS
+    firefox_common, util::{fetch_text, get_or_insert_obj, roaming_data_base, snap_base}, ARGS
 };
-use std::{path::PathBuf, sync::OnceLock};
-use tracing::{instrument, warn};
-use crate::util::snap_base;
+use color_eyre::eyre::{bail, ContextCompat};
+use serde_json::{json, Value};
+use std::{
+    fs, path::{Path, PathBuf}, sync::OnceLock
+};
+use tracing::{debug, info_span, instrument, warn};
 
 static BETTER_FOX_USER_JS: OnceLock<String> = OnceLock::new();
 fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
@@ -47,5 +50,52 @@ pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
         custom_overrides.push(include_str!("../snippets/firefox_user_js_vert_tabs"));
     }
 
-    firefox_common::debloat(path, get_better_fox_user_js, &custom_overrides.join("\n"))
+    let profiles =
+        firefox_common::debloat(path, get_better_fox_user_js, &custom_overrides.join("\n"))?;
+    if !ARGS.get().unwrap().vertical_tabs {
+        return Ok(());
+    }
+
+    for profile in profiles {
+        let span = info_span!("Updating xulstore", %profile);
+        let _enter = span.enter();
+
+        match xulstore(&profile.path) {
+            Ok(_) => debug!("updated xulstore"),
+            Err(why) => warn!(err = %why, "Failed to update")
+        }
+    }
+
+    Ok(())
+}
+
+#[instrument]
+fn xulstore(root: &Path) -> color_eyre::Result<()> {
+    let path = root.join("xulstore.json");
+    if !path.exists() {
+        warn!(path = %path.display(), "xulstore.json does not exist");
+        return Ok(());
+    }
+
+    let xulstore_str = fs::read_to_string(&root);
+    let Value::Object(mut xulstore) = serde_json::from_str::<Value>(&xulstore_str?)? else {
+        bail!("Failed to parse xulstore as JSON");
+    };
+
+    let browser_content =
+        get_or_insert_obj(&mut xulstore, "chrome://browser/content/browser.xhtml")
+            .context("Failed to cast browser content")?;
+
+    if let Some(vertical_tabs) = get_or_insert_obj(browser_content, "vertical-tabs") {
+        vertical_tabs.insert(String::from("collapsed"), json!(false));
+        debug!("collapsed vertical tabs");
+    }
+
+    if let Some(tabs_toolbar) = get_or_insert_obj(browser_content, "TabsToolbar") {
+        tabs_toolbar.insert(String::from("collapsed"), json!(true));
+        debug!("collapsed tabs toolbar");
+    }
+
+    fs::write(&path, serde_json::to_string_pretty(&xulstore)?)
+        .map_err(color_eyre::eyre::Error::from)
 }

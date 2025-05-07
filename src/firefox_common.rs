@@ -12,8 +12,14 @@ use tracing::{debug, info, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 #[derive(Debug)]
-pub struct FirefoxProfile<'a> {
-    pub name: &'a str,
+struct FirefoxProfile<'a> {
+    name: &'a str,
+    path: PathBuf
+}
+
+#[derive(Debug)]
+pub struct OwnedFirefoxProfile {
+    pub name: String,
     pub path: PathBuf
 }
 
@@ -23,12 +29,24 @@ impl Display for FirefoxProfile<'_> {
     }
 }
 
+impl Display for OwnedFirefoxProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl From<FirefoxProfile<'_>> for OwnedFirefoxProfile {
+    fn from(profile: FirefoxProfile) -> Self {
+        OwnedFirefoxProfile { name: profile.name.to_string(), path: profile.path }
+    }
+}
+
 #[instrument(skip_all)]
 pub fn debloat<'a, F>(
     path: PathBuf,
     fetch_user_js: F,
     additional_snippets: &str
-) -> color_eyre::Result<()>
+) -> color_eyre::Result<Vec<OwnedFirefoxProfile>>
 where
     F: Fn() -> color_eyre::Result<&'a str>
 {
@@ -65,24 +83,24 @@ where
 
     if profiles.is_empty() {
         warn!("No FireFox profiles found in profiles.ini");
-        return Ok(());
+        return Ok(Vec::new());
     }
 
     let profiles = select_profiles(profiles, &(0..defaults).collect::<Vec<_>>());
     if profiles.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
     }
 
-    for profile in profiles {
+    for profile in &profiles {
         let span = info_span!("Debloating profile", profile = %profile);
         let _enter = span.enter();
 
-        if let Err(why) = backup_profile(&profile) {
+        if let Err(why) = backup_profile(profile) {
             warn!(err = ?why, "Failed to backup profile");
             continue;
         }
 
-        if let Err(why) = install_user_js(&profile, &fetch_user_js, additional_snippets) {
+        if let Err(why) = install_user_js(profile, &fetch_user_js, additional_snippets) {
             warn!(err = ?why, "Failed to install user.js");
             continue;
         }
@@ -90,7 +108,7 @@ where
         debug!("Finished debloating profile");
     }
 
-    Ok(())
+    Ok(profiles.into_iter().map(Into::into).collect::<Vec<_>>())
 }
 
 static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
