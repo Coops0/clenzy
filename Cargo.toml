@@ -1,8 +1,9 @@
 [package]
 name = "browser-debloat"
+edition = "2024"
+version = "0.1.0"
 authors = ["Cooper Hanessian"]
 homepage = "https://github.com/Coops0/browser-debloat"
-edition = "2024"
 
 [dependencies]
 chrono = "0.4.41"
