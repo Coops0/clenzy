@@ -43,6 +43,10 @@ pub fn local_data_base() -> Option<PathBuf> {
     }
 }
 
+pub fn snap_base() -> Option<PathBuf> {
+    if cfg!(target_os = "linux") { Some(dirs::home_dir()?.join("snap")) } else { None }
+}
+
 // 202501192003
 pub fn timestamp() -> String {
     chrono::Local::now().format("%Y%m%d%H%M").to_string()

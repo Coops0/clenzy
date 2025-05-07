@@ -1,7 +1,10 @@
 # TODO
 - good readme with gif
-
-
-### FUTURE:
-- interactive ui for the clap settings
-- notarize macos app
+- create issue template
+- still showing weather firefox
+- brave default browser annoyance
+- sidebar still not open by default on firefox
+- flat pak?
+- brave advanced settings
+  - show bookmark button
+  - show home button (secure preferences)

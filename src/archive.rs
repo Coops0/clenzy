@@ -1,11 +1,9 @@
-use std::fs::{DirEntry, File};
-use std::{fs, io};
-use std::io::{Read, Write};
-use std::path::Path;
 use color_eyre::eyre::{bail, Context};
-use tracing::{instrument, warn};
-use zip::write::SimpleFileOptions;
-use zip::ZipWriter;
+use std::{
+    fs, fs::{DirEntry, File}, io, io::{Read, Write}, path::Path
+};
+use tracing::{debug, instrument, warn};
+use zip::{write::SimpleFileOptions, ZipWriter};
 
 #[instrument(skip_all)]
 pub fn add_to_archive(
@@ -27,15 +25,25 @@ pub fn add_to_archive(
 
     let abs_path = entry.path();
     let path = abs_path.strip_prefix(prefix).unwrap_or(&abs_path);
+    let file_type = match entry.file_type() {
+        Ok(f) => f,
+        Err(why) => {
+            debug!(err = ?why, path = %path.display(), "Failed to get file type");
+            return Ok(());
+        }
+    };
 
-    let r = if entry.file_type()?.is_dir() {
+    let r = if file_type.is_dir() {
         add_dir_to_archive(zip, &abs_path, path, prefix, options, skip)
-    } else {
+    } else if file_type.is_file() {
         add_file_to_archive(zip, &abs_path, path, options)
+    } else {
+        debug!(path = %path.display(), file_type = ?file_type, "Skipping entry of bad type");
+        return Ok(());
     };
 
     if let Err(why) = r {
-        warn!(err = ?why, "Failed to add entry to archive");
+        warn!(err = ?why, path = %path.display(), "Failed to add entry to archive");
     }
 
     Ok(())

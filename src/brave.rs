@@ -1,13 +1,14 @@
-use crate::util::{
-    get_or_insert_obj, local_data_base, select_profiles, timestamp, validate_profile_dir,
+use crate::{
+    util::{
+        get_or_insert_obj, local_data_base, select_profiles, snap_base, timestamp, validate_profile_dir
+    }, ARGS
 };
 use color_eyre::eyre::{bail, Context, ContextCompat};
 use serde_json::{json, Map, Value};
-use std::fmt::Display;
-use std::path::Path;
-use std::{fs, path::PathBuf, sync::LazyLock};
+use std::{
+    fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
+};
 use tracing::{debug, info, info_span, instrument, warn};
-use crate::ARGS;
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
@@ -16,6 +17,16 @@ pub fn brave_folder() -> Option<PathBuf> {
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    if path.exists() { Some(path) } else { None }
+}
+
+pub fn brave_snap_folder() -> Option<PathBuf> {
+    let path = snap_base()?
+        .join("brave")
+        .join("509")
+        .join(".config")
+        .join("BraveSoftware")
+        .join("Brave-Browser");
     if path.exists() { Some(path) } else { None }
 }
 
@@ -58,7 +69,7 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
 
 struct Profile {
     name: String,
-    path: PathBuf,
+    path: PathBuf
 }
 
 impl Display for Profile {
@@ -100,9 +111,7 @@ fn try_to_get_profiles(root: &Path) -> color_eyre::Result<Vec<Profile>> {
     let profiles_order = profile
         .get("profile_order")
         .and_then(Value::as_array)
-        .map(|orders| {
-            orders.iter().filter_map(Value::as_str).collect::<Vec<_>>()
-        })
+        .map(|orders| orders.iter().filter_map(Value::as_str).collect::<Vec<_>>())
         .unwrap_or_default();
 
     let mut profiles = Vec::with_capacity(info_cache.len());
@@ -256,13 +265,15 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
                 { "built_in_item_type": 2, "type": 0 },
                 { "built_in_item_type": 3, "type": 0 },
                 { "built_in_item_type": 4, "type": 0 }
-            ]),
+            ])
         );
         sidebar.insert(s!("sidebar_show_option"), json!(3));
         debug!("hid sidebar items");
     }
 
-    if ARGS.get().unwrap().vertical_tabs && let Some(tabs) = get_or_insert_obj(brave, "tabs") {
+    if ARGS.get().unwrap().vertical_tabs
+        && let Some(tabs) = get_or_insert_obj(brave, "tabs")
+    {
         tabs.insert(s!("vertical_tabs_collapsed"), json!(false));
         tabs.insert(s!("vertical_tabs_enabled"), json!(true));
         tabs.insert(s!("vertical_tabs_expanded_width"), json!(114));

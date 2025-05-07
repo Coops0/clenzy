@@ -1,9 +1,9 @@
+mod archive;
 mod brave;
 mod firefox;
 mod firefox_common;
 mod util;
 mod zen;
-mod archive;
 
 use crate::util::get_matching_running_processes;
 use clap::{ArgAction, Parser};
@@ -17,14 +17,15 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 #[derive(Parser, Default)]
 pub struct Args {
+    /// Print extra debug information
     #[clap(short, long, default_value_t = false)]
     pub verbose: bool,
 
-    // Assume yes to all prompts
-    #[clap(short = 'Y', default_value_t = false)]
+    /// Assume yes to all prompts
+    #[clap(long = "auto-confirm", short = 'Y', default_value_t = false)]
     pub auto_confirm: bool,
 
-    // Disable enabling vertical tabs
+    /// Disable enabling vertical tabs
     #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
     pub vertical_tabs: bool
 }
@@ -52,11 +53,14 @@ fn main() -> color_eyre::Result<()> {
 
     tracing_subscriber::registry().with(filter).with(fmt_layer).init();
 
-    let browsers: [BrowserTuple; 4] = [
+    let browsers: [BrowserTuple; 7] = [
         ("Brave", brave::brave_folder(), brave::debloat),
         ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
+        ("Brave (Snap)", brave::brave_snap_folder(), brave::debloat),
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
-        ("Zen", zen::zen_folder(), zen::debloat)
+        ("Firefox (Snap)", firefox::firefox_snap_folder(), firefox::debloat),
+        ("Zen", zen::zen_folder(), zen::debloat),
+        ("Zen (Snap)", zen::zen_snap_folder(), zen::debloat)
     ];
 
     let browsers = browsers
@@ -128,6 +132,7 @@ fn check_if_running(system: &mut System, name: &str) {
     }
 
     warn!(processes, "Please close all instances before debloating");
+    info!("Press any key to continue");
     let _ = stdin().read_exact(&mut [0_u8]);
 
     if !get_matching_running_processes(system, name).is_empty() {

@@ -3,6 +3,7 @@ use crate::{
 };
 use std::{path::PathBuf, sync::OnceLock};
 use tracing::{instrument, warn};
+use crate::util::snap_base;
 
 static BETTER_FOX_USER_JS: OnceLock<String> = OnceLock::new();
 fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
@@ -26,6 +27,11 @@ pub fn firefox_folder() -> Option<PathBuf> {
         roaming_data_base()?.join(".mozilla").join("firefox")
     };
 
+    if path.exists() { Some(path) } else { None }
+}
+
+pub fn firefox_snap_folder() -> Option<PathBuf> {
+    let path = snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox");
     if path.exists() { Some(path) } else { None }
 }
 

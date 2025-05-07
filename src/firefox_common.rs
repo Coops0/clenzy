@@ -4,6 +4,7 @@ use crate::{
 use color_eyre::eyre::{Context, ContextCompat};
 use fs::File;
 use ini::Ini;
+use inquire::error::InquireResult;
 use std::{
     fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
@@ -145,7 +146,7 @@ where
     F: Fn() -> color_eyre::Result<&'a str>
 {
     let user_js_path = profile.path.join("user.js");
-    if prompt_should_skip_overwrite_user_js(profile, &user_js_path) {
+    if prompt_should_skip_overwrite_user_js(profile, &user_js_path)? {
         debug!(path = %user_js_path.display(), "Skipping user.js overwrite");
         return Ok(());
     }
@@ -176,16 +177,16 @@ where
     fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }
 
-fn prompt_should_skip_overwrite_user_js(profile: &FirefoxProfile, path: &Path) -> bool {
-    if path.exists()
-        && !ARGS.get().unwrap().auto_confirm
-        && !inquire::prompt_confirmation(format!(
-            "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
-        ))
-        .unwrap_or_default()
-    {
-        return true;
-    }
+fn prompt_should_skip_overwrite_user_js(
+    profile: &FirefoxProfile,
+    path: &Path
+) -> InquireResult<bool> {
+    if !path.exists() || ARGS.get().unwrap().auto_confirm {
+        return Ok(false);
+    };
 
-    false
+    inquire::Confirm::new(&format!(
+        "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
+    ))
+    .prompt()
 }

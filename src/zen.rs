@@ -1,5 +1,5 @@
 use crate::{
-    firefox_common, util::{fetch_text, roaming_data_base}
+    firefox_common, util::{fetch_text, roaming_data_base, snap_base}
 };
 use std::{path::PathBuf, sync::OnceLock};
 use tracing::instrument;
@@ -19,6 +19,12 @@ fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
 
 pub fn zen_folder() -> Option<PathBuf> {
     let path = roaming_data_base()?.join("zen");
+    if path.exists() { Some(path) } else { None }
+}
+
+pub fn zen_snap_folder() -> Option<PathBuf> {
+    // This is unofficial
+    let path = snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen");
     if path.exists() { Some(path) } else { None }
 }
 
