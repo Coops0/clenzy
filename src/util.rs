@@ -1,29 +1,18 @@
-// pub static CONFIG_DIRS: LazyLock<HashSet<PathBuf>> = LazyLock::new(|| {
-//     [dirs::config_dir(), dirs::config_local_dir(), dirs::data_dir(), dirs::data_local_dir()]
-//         .into_iter()
-//         .flatten()
-//         .collect::<HashSet<PathBuf>>()
-// });
-
+use crate::ARGS;
 use chrono::{Datelike, Timelike};
 use color_eyre::eyre::{bail, Context};
-use indicatif::ProgressStyle;
 use serde_json::{Map, Value};
 use std::{
-    fs,
-    fs::{DirEntry, File},
-    io,
-    io::{Read, Write},
-    path::{Path, PathBuf},
+    fmt::Display, fs, fs::{DirEntry, File}, io, io::{Read, Write}, path::{Path, PathBuf}
 };
+use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, instrument, warn};
-use ureq::http::header::CONTENT_LENGTH;
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 #[instrument(skip(map))]
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
-    key: &str,
+    key: &str
 ) -> Option<&'a mut Map<String, Value>> {
     let ret = map
         .entry(key.to_string())
@@ -84,7 +73,7 @@ pub const DEFAULT_FIREFOX_SKIP: &[&str] = &[
     "suggest.sqlite-wal",
     "places.suggest.sqlite-wal",
     "favicons.sqlite-wal",
-    "suggest.sqlite-wal",
+    "suggest.sqlite-wal"
 ];
 
 #[instrument(skip_all)]
@@ -93,8 +82,7 @@ pub fn add_to_archive(
     entry: io::Result<DirEntry>,
     prefix: &Path,
     options: &SimpleFileOptions,
-    skip: &[&str],
-    pb: &indicatif::ProgressBar,
+    skip: &[&str]
 ) -> color_eyre::Result<()> {
     let entry = entry?;
     let name = entry.file_name().into_string().unwrap_or_default();
@@ -103,7 +91,6 @@ pub fn add_to_archive(
     }
 
     if skip.iter().any(|s| name.contains(s)) {
-        debug!(name, "Skipping entry");
         return Ok(());
     }
 
@@ -111,12 +98,10 @@ pub fn add_to_archive(
     let path = abs_path.strip_prefix(prefix).unwrap_or(&abs_path);
 
     let r = if entry.file_type()?.is_dir() {
-        add_dir_to_archive(zip, &abs_path, path, prefix, options, skip, pb)
+        add_dir_to_archive(zip, &abs_path, path, prefix, options, skip)
     } else {
         add_file_to_archive(zip, &abs_path, path, options)
     };
-
-    pb.inc(1);
 
     if let Err(why) = r {
         warn!(err = ?why, "Failed to add entry to archive");
@@ -132,15 +117,13 @@ fn add_dir_to_archive(
     path: &Path,
     prefix: &Path,
     options: &SimpleFileOptions,
-    skip: &[&str],
-    pb: &indicatif::ProgressBar,
+    skip: &[&str]
 ) -> color_eyre::Result<()> {
     zip.add_directory(path.display().to_string(), *options)?;
-    let entries = fs::read_dir(abs_path)?.collect::<Vec<_>>();
-    pb.inc_length(entries.len() as u64);
-    
+    let entries = fs::read_dir(abs_path)?;
+
     for entry in entries {
-        if let Err(why) = add_to_archive(zip, entry, prefix, options, skip, pb) {
+        if let Err(why) = add_to_archive(zip, entry, prefix, options, skip) {
             warn!(err = ?why, "Failed to add entry to archive (nested)");
         }
     }
@@ -152,7 +135,7 @@ fn add_file_to_archive(
     zip: &mut ZipWriter<File>,
     abs_path: &Path,
     path: &Path,
-    options: &SimpleFileOptions,
+    options: &SimpleFileOptions
 ) -> color_eyre::Result<()> {
     zip.start_file(path.display(), *options)?;
 
@@ -173,26 +156,75 @@ fn add_file_to_archive(
 }
 
 #[instrument]
-pub fn fetch_text_with_pb(name: &str, url: &str) -> color_eyre::Result<String> {
-    let bar = indicatif::ProgressBar::no_length()
-        .with_style(ProgressStyle::default_spinner().template("{spinner} {msg:.cyan}")?)
-        .with_message(format!("Downloading {name}"));
+pub fn fetch_text(name: &str, url: &str) -> color_eyre::Result<String> {
+    ureq::get(url)
+        .call()
+        .wrap_err_with(|| format!("Failed to request {name}"))?
+        .into_body()
+        .read_to_string()
+        .wrap_err_with(|| format!("Failed to read {name} to string"))
+}
 
-    let res = ureq::get(url).call().wrap_err_with(|| format!("Failed to download {name}"))?;
-
-    if let Some(length) =
-        res.headers().get(CONTENT_LENGTH).and_then(|l| l.to_str().ok()).and_then(|l| l.parse().ok())
-    {
-        bar.set_style(
-            ProgressStyle::default_bar()
-                .template("[{bar:27}] {bytes:>9}/{total_bytes:9}  {bytes_per_sec} {elapsed:>4}/{eta:4} - {msg:.cyan}")?
-                .progress_chars("=> "));
-        bar.set_length(length);
+pub fn validate_profile_dir(profile: &Path) -> bool {
+    if !profile.exists() {
+        warn!(path = %profile.display(), "Profile does not exist");
+        return false;
     }
 
-    let mut reader = bar.wrap_read(res.into_body().into_reader());
-    let mut s = String::new();
-    reader.read_to_string(&mut s).wrap_err_with(|| format!("Failed to read {name} to string"))?;
+    let children = match fs::read_dir(profile) {
+        Ok(c) => c.count(),
+        Err(why) => {
+            warn!(path = %profile.display(), err = %why, "Failed to read profile directory");
+            return false;
+        }
+    };
 
-    Ok(s)
+    // If no files or only times.json (on firefix)
+    if children < 2 {
+        return false;
+    }
+
+    true
+}
+
+pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize]) -> Vec<P> {
+    if ARGS.get().unwrap().auto_confirm {
+        profiles
+    } else if profiles.len() == 1 {
+        vec![profiles.remove(0)]
+    } else {
+        inquire::MultiSelect::new("Which profiles to debloat?", profiles)
+            .with_default(selected)
+            .prompt()
+            .unwrap_or_default()
+            .into_iter()
+            .collect::<Vec<_>>()
+    }
+}
+
+#[instrument(skip(system))]
+pub fn warn_if_process_is_running(system: &mut System, name: &str) -> bool {
+    let lower_name = name.to_lowercase();
+    system.refresh_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::default()));
+    let processes = system.processes();
+
+    debug!("found {} processes total", processes.len());
+
+    let running_instances = processes
+        .values()
+        .filter_map(|p| {
+            let name = p.name().to_str()?;
+            if name.to_lowercase().contains(&lower_name) { None } else { Some(name) }
+        })
+        .collect::<Vec<_>>();
+
+    let detected = !running_instances.is_empty();
+    if detected {
+        warn!(
+            instances = running_instances.join(", "),
+            "Please close all instances before debloating"
+        );
+    }
+
+    detected
 }

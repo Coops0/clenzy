@@ -1,9 +1,13 @@
-use crate::util::{get_or_insert_obj, local_data_base, timestamp};
-use color_eyre::eyre::{Context, ContextCompat};
+use crate::util::{
+    get_or_insert_obj, local_data_base, select_profiles, timestamp, validate_profile_dir,
+};
+use color_eyre::eyre::{bail, Context, ContextCompat};
 use serde_json::{json, Map, Value};
-use std::{fs, path::PathBuf, sync::LazyLock};
+use std::fmt::Display;
 use std::path::Path;
-use tracing::{debug, info, instrument};
+use std::{fs, path::PathBuf, sync::LazyLock};
+use tracing::{debug, info, info_span, instrument, warn};
+use crate::ARGS;
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
@@ -21,11 +25,128 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
         path = path.join("User Data")
     }
 
-    let default = path.join("Default");
-    preferences(&default)?;
-    chrome_feature_state(&default)?;
+    let profiles = match try_to_get_profiles(&path) {
+        Ok(profiles) => {
+            debug!(profiles = %profiles.len(), "Found profiles");
+            profiles
+        }
+        Err(why) => {
+            warn!(err = ?why, "Failed to get profiles, falling back to default");
+            vec![Profile { name: String::from("Default"), path: path.join("Default") }]
+        }
+    };
+
+    for profile in profiles {
+        let span = info_span!("Debloating profile", profile = %profile.name);
+        let _enter = span.enter();
+
+        if let Err(why) = preferences(&profile.path) {
+            warn!(err = ?why, "Failed to debloat preferences");
+            continue;
+        }
+
+        if let Err(why) = chrome_feature_state(&profile.path) {
+            warn!(err = ?why, "Failed to debloat chrome feature state");
+            continue;
+        }
+
+        debug!("Finished debloating profile");
+    }
 
     Ok(())
+}
+
+struct Profile {
+    name: String,
+    path: PathBuf,
+}
+
+impl Display for Profile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[instrument(skip_all)]
+fn try_to_get_profiles(root: &Path) -> color_eyre::Result<Vec<Profile>> {
+    let local_state_path = root.join("Local State");
+    let Value::Object(local_state) =
+        serde_json::from_str::<Value>(&fs::read_to_string(local_state_path)?)
+            .wrap_err("Failed to read Local State")?
+    else {
+        bail!("Failed to parse Local State as JSON");
+    };
+
+    let profile = local_state
+        .get("profile")
+        .and_then(Value::as_object)
+        .context("Failed to get profile object")?;
+
+    let mut info_cache = profile
+        .get("info_cache")
+        .and_then(Value::as_object)
+        .inspect(|ic| debug!(len = %ic.iter().len(), "initial info_cache object"))
+        .context("Failed to get info_cache object")?
+        .into_iter()
+        .filter_map(|(n, o)| Some((n, o.as_object()?)))
+        .filter_map(|(n, o)| {
+            let name = o.get("name").and_then(Value::as_str)?.to_owned();
+            let path = root.join(n);
+            Some(Profile { name, path })
+        })
+        .filter(|profile| validate_profile_dir(&profile.path))
+        .collect::<Vec<_>>();
+
+    let profiles_order = profile
+        .get("profile_order")
+        .and_then(Value::as_array)
+        .map(|orders| {
+            orders.iter().filter_map(Value::as_str).collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let mut profiles = Vec::with_capacity(info_cache.len());
+    // Try to keep the order of profiles
+    for profile_name in profiles_order {
+        if let Some(position) = info_cache.iter().position(|p| p.name == profile_name) {
+            let profile = info_cache.remove(position);
+            profiles.push(profile);
+        } else {
+            warn!(profile = %profile_name, "Profile not found in info_cache");
+        }
+    }
+
+    // Add any remaining profiles that were not in the order array
+    profiles.extend(info_cache);
+
+    // We're only making this an error because above we're falling back to using default
+    // only if this function returns Err
+    if profiles.is_empty() {
+        bail!("No profiles found");
+    }
+
+    // Have preselected any last active profiles.
+    // If there are none, then just select all.
+    let selected = profile
+        .get("last_active_profiles")
+        .and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .filter_map(Value::as_str)
+                .filter_map(|profile_name| {
+                    profiles.iter().position(|prof| prof.name == profile_name)
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| (0..profiles.len()).collect());
+
+    let profiles = select_profiles(profiles, &selected);
+    if profiles.is_empty() {
+        // If they explicitly select no profiles, they don't fallback to default
+        return Ok(Vec::new());
+    }
+
+    Ok(profiles)
 }
 
 macro_rules! s {
@@ -44,17 +165,17 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     debug!("backup dir: {}", backup.display());
 
     let prefs_str = fs::read_to_string(&path);
-    let mut prefs = serde_json::from_str::<Value>(&prefs_str?)?;
+    let Value::Object(mut prefs) = serde_json::from_str::<Value>(&prefs_str?)? else {
+        bail!("Failed to parse preferences as JSON");
+    };
 
-    let prefs_map = prefs.as_object_mut().context("failed to parse preferences as an object")?;
-
-    if let Some(bookmark_bar) = get_or_insert_obj(prefs_map, "bookmark_bar") {
+    if let Some(bookmark_bar) = get_or_insert_obj(&mut prefs, "bookmark_bar") {
         bookmark_bar.insert(s!("show_on_all_tabs"), json!(false));
         bookmark_bar.insert(s!("show_tab_groups"), json!(false));
         debug!("disabled bookmark bar on all tabs and tab groups");
     }
 
-    let brave = prefs_map
+    let brave = prefs
         .get_mut("brave")
         .and_then(Value::as_object_mut)
         .context("failed to get brave object")?;
@@ -135,13 +256,13 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
                 { "built_in_item_type": 2, "type": 0 },
                 { "built_in_item_type": 3, "type": 0 },
                 { "built_in_item_type": 4, "type": 0 }
-            ])
+            ]),
         );
         sidebar.insert(s!("sidebar_show_option"), json!(3));
         debug!("hid sidebar items");
     }
 
-    if let Some(tabs) = get_or_insert_obj(brave, "tabs") {
+    if ARGS.get().unwrap().vertical_tabs && let Some(tabs) = get_or_insert_obj(brave, "tabs") {
         tabs.insert(s!("vertical_tabs_collapsed"), json!(false));
         tabs.insert(s!("vertical_tabs_enabled"), json!(true));
         tabs.insert(s!("vertical_tabs_expanded_width"), json!(114));
@@ -157,7 +278,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
 
     brave.insert(s!("tabs_search_show"), json!(false));
     brave.insert(s!("webtorrent_enabled"), json!(false));
-    info!("disabled webtorrent and hid tabs search");
+    debug!("disabled webtorrent and hid tabs search");
 
     if let Some(today) = get_or_insert_obj(brave, "today") {
         today.insert(s!("should_show_toolbar_button"), json!(false));
@@ -169,14 +290,16 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         debug!("marked welcome page as seen");
     }
 
-    if let Some(custom_links) = get_or_insert_obj(prefs_map, "custom_links") {
+    // -- END BRAVE SECTION --
+
+    if let Some(custom_links) = get_or_insert_obj(&mut prefs, "custom_links") {
         custom_links.insert(s!("initialized"), json!(true));
     }
 
-    prefs_map.insert(s!("enable_do_not_track"), json!(true));
+    prefs.insert(s!("enable_do_not_track"), json!(true));
     debug!("enabled do not track");
 
-    if let Some(in_product_help) = get_or_insert_obj(prefs_map, "in_product_help") {
+    if let Some(in_product_help) = get_or_insert_obj(&mut prefs, "in_product_help") {
         if let Some(new_badge) = get_or_insert_obj(in_product_help, "new_badge") {
             if let Some(compose_nudge) = get_or_insert_obj(new_badge, "ComposeNudge") {
                 compose_nudge.insert(s!("show_count"), json!(0));
@@ -197,25 +320,25 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         debug!("disabled in product help");
     }
 
-    if let Some(ntp) = get_or_insert_obj(prefs_map, "ntp") {
+    if let Some(ntp) = get_or_insert_obj(&mut prefs, "ntp") {
         ntp.insert(s!("shortcust_visible"), json!(false));
         ntp.insert(s!("use_most_visited_tiles"), json!(false));
         debug!("hid ntp widgets");
     }
 
-    if let Some(omnibox) = get_or_insert_obj(prefs_map, "omnibox") {
+    if let Some(omnibox) = get_or_insert_obj(&mut prefs, "omnibox") {
         // show entire URL always
         omnibox.insert(s!("prevent_url_elisions"), json!(true));
         omnibox.insert(s!("shown_count_history_scope_promo"), json!(false));
         debug!("enabled showing full url and history scope promo");
     }
 
-    if let Some(search) = get_or_insert_obj(prefs_map, "search") {
+    if let Some(search) = get_or_insert_obj(&mut prefs, "search") {
         search.insert(s!("suggest_enabled"), json!(true));
         debug!("enabled search suggestions");
     }
 
-    if let Some(privacy_sandbox) = get_or_insert_obj(prefs_map, "privacy_sandbox") {
+    if let Some(privacy_sandbox) = get_or_insert_obj(&mut prefs, "privacy_sandbox") {
         privacy_sandbox.insert(s!("first_party_sets_enabled"), json!(false));
         if let Some(m1) = get_or_insert_obj(privacy_sandbox, "m1") {
             m1.insert(s!("ad_measurement_enabled"), json!(false));
@@ -231,16 +354,20 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
 }
 
 static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    include_str!("../snippets/disabled_brave_features").lines().filter(|line| !line.is_empty()).collect()
+    include_str!("../snippets/disabled_brave_features")
+        .lines()
+        .filter(|line| !line.is_empty())
+        .collect()
 });
 
-#[instrument(skip(root))]
+#[instrument(skip_all)]
 fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
 
     let _ = fs::copy(&path, &backup);
-    info!("backed up brave chrome feature state to {}", backup.display());
+    info!("Backed up brave chrome feature state");
+    debug!("backup dir: {}", backup.display());
 
     let prefs_str = fs::read_to_string(&path).unwrap_or_default();
     let mut prefs_parsed =

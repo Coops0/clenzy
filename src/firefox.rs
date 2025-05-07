@@ -1,11 +1,12 @@
-use crate::util::{fetch_text_with_pb, roaming_data_base};
+use crate::util::{fetch_text, roaming_data_base};
+use crate::ARGS;
 use std::{path::PathBuf, sync::OnceLock};
 use tracing::{instrument, warn};
 
 static BETTER_FOX_USER_JS: OnceLock<String> = OnceLock::new();
 fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
     if BETTER_FOX_USER_JS.get().is_none() {
-        let s = fetch_text_with_pb(
+        let s = fetch_text(
             "Betterfox User.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js",
         )?;
@@ -27,14 +28,17 @@ pub fn firefox_folder() -> Option<PathBuf> {
     if path.exists() { Some(path) } else { None }
 }
 
-#[instrument(skip(path))]
+#[instrument(skip_all)]
 pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
-    let custom_overrides = &[
+    let mut custom_overrides = vec![
         include_str!("../snippets/betterfox_user_config"),
         // These should be optional eventually
         include_str!("../snippets/firefox_user_js_extra"),
-    ]
-    .join("\n");
+    ];
 
-    crate::firefox_common::debloat(path, get_better_fox_user_js, custom_overrides)
+    if ARGS.get().unwrap().vertical_tabs {
+        custom_overrides.push(include_str!("../snippets/firefox_user_js_vert_tabs"));
+    }
+
+    crate::firefox_common::debloat(path, get_better_fox_user_js, &custom_overrides.join("\n"))
 }

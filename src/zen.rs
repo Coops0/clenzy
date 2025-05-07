@@ -1,11 +1,11 @@
-use crate::util::{fetch_text_with_pb, roaming_data_base};
+use crate::util::{fetch_text, roaming_data_base};
 use std::{path::PathBuf, sync::OnceLock};
 use tracing::instrument;
 
 static BETTER_ZEN_USER_JS: OnceLock<String> = OnceLock::new();
 fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
     if BETTER_ZEN_USER_JS.get().is_none() {
-        let s = fetch_text_with_pb(
+        let s = fetch_text(
             "Better Zen user.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/refs/heads/main/zen/user.js",
         )?;

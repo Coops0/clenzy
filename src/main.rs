@@ -4,17 +4,14 @@ mod firefox_common;
 mod util;
 mod zen;
 
-use clap::Parser;
+use crate::util::warn_if_process_is_running;
+use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
 use std::{
-    env,
-    fmt::Display,
-    io::{stdin, Read},
-    path::PathBuf,
-    sync::OnceLock,
+    env, fmt::Display, io::{stdin, Read}, path::PathBuf, sync::OnceLock
 };
 use sysinfo::System;
-use tracing::{info, level_filters::LevelFilter, warn};
+use tracing::{info, info_span, level_filters::LevelFilter, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[derive(Parser, Default)]
@@ -23,8 +20,16 @@ pub struct Args {
     pub verbose: bool,
 
     // Assume yes to all prompts
-    #[clap[short = 'Y', default_value_t = false]]
-    pub autoconfirm: bool,
+    #[clap(short = 'Y', default_value_t = false)]
+    pub auto_confirm: bool,
+
+    // Bypass running process check
+    #[clap(short = 'B', long = "bypass-running", default_value_t = false)]
+    pub bypass_running: bool,
+
+    // Disable enabling vertical tabs
+    #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
+    pub vertical_tabs: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -40,20 +45,21 @@ fn main() -> color_eyre::Result<()> {
     let mut filter =
         EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env()?;
 
+    let mut fmt_layer = tracing_subscriber::fmt::layer().without_time().pretty();
     if cfg!(debug_assertions) || args.verbose {
         filter = filter.add_directive("browser_debloat=debug".parse()?);
+    } else {
+        fmt_layer =
+            fmt_layer.with_target(false).with_level(true).with_file(false).with_line_number(false);
     }
 
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(tracing_subscriber::fmt::layer().without_time())
-        .init();
+    tracing_subscriber::registry().with(filter).with(fmt_layer.pretty()).init();
 
     let browsers: [BrowserTuple; 4] = [
         ("Brave", brave::brave_folder(), brave::debloat),
         ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
-        ("Zen", zen::zen_folder(), zen::debloat),
+        ("Zen", zen::zen_folder(), zen::debloat)
     ];
 
     let browsers = browsers
@@ -67,7 +73,7 @@ fn main() -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    let browsers = if args.autoconfirm {
+    let browsers = if args.auto_confirm {
         browsers
     } else {
         MultiSelect::new("Select browsers to debloat", browsers)
@@ -80,37 +86,37 @@ fn main() -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    let system = System::new();
+    let mut system = System::new();
 
     for browser in browsers {
-        let processes = system.processes();
-        let running_instances = processes
-            .values()
-            .filter_map(|p| {
-                let name = p.name().to_str()?;
-                if name.to_lowercase().contains(&browser.name.to_lowercase()) {
-                    None
-                } else {
-                    Some(name)
-                }
-            })
-            .collect::<Vec<_>>();
+        let span = info_span!("debloat", browser = %browser.name);
+        let _enter = span.enter();
 
-        if !running_instances.is_empty() {
-            warn!(browser = %browser.name, instances = running_instances.join(", "), "Please close all instances of before debloating");
-            if stdin().read_exact(&mut [0_u8]).is_err() {
-                continue;
+        let mut detections = 0u8;
+        loop {
+            if !warn_if_process_is_running(&mut system, browser.name) // Returns true if the process detected
+                || ARGS.get().unwrap().auto_confirm
+                || ARGS.get().unwrap().bypass_running
+            {
+                break;
             }
+
+            detections += 1;
+            if detections >= 3 {
+                warn!("Browser found still running, continuing anyway");
+                break;
+            }
+
+            let _ = stdin().read_exact(&mut [0_u8]);
         }
 
         match (browser.debloat)(browser.folder) {
             Ok(_) => info!("Debloated {}", browser.name),
-            Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name),
+            Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name)
         }
     }
 
-    info!("done");
-
+    info!("Done");
     Ok(())
 }
 
@@ -119,7 +125,7 @@ type BrowserTuple = (&'static str, Option<PathBuf>, fn(PathBuf) -> color_eyre::R
 struct Browser {
     name: &'static str,
     folder: PathBuf,
-    debloat: fn(PathBuf) -> color_eyre::Result<()>,
+    debloat: fn(PathBuf) -> color_eyre::Result<()>
 }
 
 impl Display for Browser {
