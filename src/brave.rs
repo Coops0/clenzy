@@ -201,7 +201,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     brave.insert(s!("always_show_bookmark_bar_on_ntp"), json!(true));
     // People will want this disabled by default probably
     brave.insert(s!("autocomplete_enabled"), json!(true));
-    debug!("enabled bookmark bar and autocomplete");
+    debug!("enabled bookmark bar (on new tab page) and autocomplete");
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
         brave_ads.insert(s!("should_allow_ads_subdivision_targeting"), json!(false));
@@ -211,6 +211,11 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     if let Some(brave_search_conversation) = get_or_insert_obj(brave, "brave_search_conversion") {
         brave_search_conversation.insert(s!("dismissed"), json!(false));
         debug!("dismissed brave search conversation");
+    }
+
+    if let Some(settings) = get_or_insert_obj(brave, "settings") {
+        settings.insert(s!("force_google_safesearch"), json!(false));
+        debug!("disabled force google safesearch");
     }
 
     if let Some(brave_vpn) = get_or_insert_obj(brave, "brave_vpn") {
@@ -253,7 +258,8 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
 
     brave.insert(s!("show_fullscreen_reminder"), json!(false));
     brave.insert(s!("show_side_panel_button"), json!(false));
-    debug!("hid fullscreen reminder and side panel button");
+    brave.insert(s!("show_bookmarks_button"), json!(false));
+    debug!("hid fullscreen reminder, side panel button, and bookmarks button");
 
     if let Some(sidebar) = get_or_insert_obj(brave, "sidebar") {
         sidebar.insert(s!("hidden_built_in_items"), json!([7]));
@@ -284,6 +290,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
 
     if let Some(wallet) = get_or_insert_obj(brave, "wallet") {
         wallet.insert(s!("show_wallet_icon_on_toolbar"), json!(false));
+        wallet.insert(s!("should_show_wallet_suggestion_badge"), json!(false));
         debug!("hid wallet button");
     }
 

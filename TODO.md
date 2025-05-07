@@ -6,5 +6,4 @@
 - sidebar still not open by default on firefox
 - flat pak?
 - brave advanced settings
-  - show bookmark button
   - show home button (secure preferences)
