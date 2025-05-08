@@ -160,7 +160,7 @@ pub fn check_if_running(system: &mut System, name: &str) {
 
     // We don't need to check for auto confirm since it's checked at the start of the function
     let should_continue =
-        inquire::prompt_confirmation("Continue anyway? (y/n)").unwrap_or_default();
+        inquire::prompt_confirmation("Continue anyway? (y/n)").expect("User killed program");
 
     if !should_continue {
         process::exit(0);

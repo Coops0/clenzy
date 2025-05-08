@@ -1,7 +1,5 @@
 use crate::Args;
-use owo_colors::{
-    colors::Green, OwoColorize
-};
+use owo_colors::{colors::Green, OwoColorize};
 use tracing::{info, level_filters::LevelFilter, warn};
 use tracing_subscriber::{
     fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter
@@ -33,14 +31,20 @@ pub fn setup_logging(args: &Args) -> color_eyre::Result<()> {
             .with_level(true)
             .with_file(false)
             .with_line_number(false)
+            .with_thread_names(false)
+            .with_thread_ids(false)
             .with_span_events(FmtSpan::NONE)
             .event_format(
                 fmt::format()
+                    .without_time()
                     .with_ansi(true)
                     .with_target(false)
                     .with_level(true)
                     .with_file(false)
                     .with_line_number(false)
+                    .with_thread_names(false)
+                    .with_thread_ids(false)
+                    .with_source_location(false)
                     .compact()
             );
         tracing_subscriber::registry().with(filter).with(fmt_layer).init();

@@ -101,7 +101,7 @@ fn main() -> color_eyre::Result<()> {
 
         match (browser.debloat)(browser.folder) {
             Ok(()) => success("Finished debloating browser"),
-            Err(why) => warn!(err = %why, "Failed to debloat {}: {why}", browser.name)
+            Err(why) => warn!(err = %why, "Failed to debloat {}", browser.name)
         }
     }
 

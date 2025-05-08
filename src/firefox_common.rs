@@ -67,13 +67,13 @@ where
 
         if ARGS.get().unwrap().backup {
             if let Err(why) = backup_profile(profile) {
-                warn!(err = ?why, "Failed to backup profile {profile}: {why}");
+                warn!(err = ?why, "Failed to backup profile {profile}");
                 continue;
             }
         }
 
         if let Err(why) = install_user_js(profile, &fetch_user_js, additional_snippets) {
-            warn!(err = ?why, "Failed to install user.js for profile {profile}: {why}");
+            warn!(err = ?why, "Failed to install user.js for profile {profile}");
             continue;
         }
 
@@ -210,11 +210,11 @@ fn check_user_js_exists(
         return Ok(false);
     }
 
-    inquire::Confirm::new(&format!(
+    Ok(inquire::Confirm::new(&format!(
         "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
     ))
     .prompt()
-    .map_err(color_eyre::eyre::Error::from)
+    .expect("User killed program"))
 }
 
 #[derive(Debug)]

@@ -425,7 +425,7 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
                 debug!("backup dir: {}", backup.display());
             }
             Err(why) => {
-                warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway: ({why})");
+                warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway");
             }
         }
     }
