@@ -185,12 +185,14 @@ fn check_user_js_exists(
         let mut fs_hasher = AHasher::default();
         let mut reader = BufReader::with_capacity(8192, File::open(path)?);
         let mut buffer = [0u8; 8192];
+
         loop {
-            if reader.read(&mut buffer)? == 0 {
+            let b = reader.read(&mut buffer)?;
+            if b == 0 {
                 break;
             }
 
-            fs_hasher.write(&buffer);
+            fs_hasher.write(&buffer[b..]);
         }
 
         fs_hasher.finish()

@@ -84,11 +84,12 @@ fn add_file_to_archive(
     let mut buffer = [0u8; 8192];
 
     loop {
-        if reader.read(&mut buffer)? == 0 {
+        let b = reader.read(&mut buffer)?;
+        if b == 0 {
             break;
         }
 
-        zip.write_all(&buffer)?;
+        zip.write_all(&buffer[b..])?;
     }
 
     zip.flush()?;

@@ -1,5 +1,5 @@
 use crate::{
-    util::{
+    logging::success, util::{
         flatpak_base, get_or_insert_obj, local_data_base, select_profiles, snap_base, timestamp, validate_profile_dir
     }, ARGS
 };
@@ -8,8 +8,7 @@ use serde_json::{json, Map, Value};
 use std::{
     fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
-use tracing::{debug, info, info_span, instrument, trace, warn};
-use crate::logging::{success};
+use tracing::{debug, info_span, instrument, trace, warn};
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
