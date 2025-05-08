@@ -1,11 +1,14 @@
 # Todo
+
 - flat pak?
 - other browsers?
-- on brave screenshots, change new tab background to color (image bg makes screenshot way larger)
-- update brave after screenshot to show we now hide clock
-- flag to disable backups
 - optimize cargo deps features (disable default-features)
+- redo demo:
+    - redo the gif to show fixed logging
+    - new brave screenshots: change ntp background to color, and show now we hide the clock
+- detect if ublock origin isn't installed
 
 ### Unlikely
-- Figure out hashing algorithm for Secure Preferences and brave, and install extensions
+
+- Figure out the hashing algorithm for Secure Preferences and brave, and install extensions
 - ^ same thing for setting kagi as default search engine

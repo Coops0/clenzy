@@ -18,6 +18,7 @@ ureq = "3.0.11"
 zip = { version = "2.6.1", default-features = false, features = ["deflate", "deflate-flate2"] }
 sysinfo = { version = "0.35.0" }
 clap = { version = "4.5.37", features = ["derive"] }
+ahash = "0.8.12"
 
 [profile.release]
 opt-level = "z"

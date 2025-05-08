@@ -1,6 +1,6 @@
 use color_eyre::eyre::{bail, Context};
 use std::{
-    fs, fs::{DirEntry, File}, io, io::{Read, Write}, path::Path
+    fs, fs::{DirEntry, File}, io, io::{BufReader, Read, Write}, path::Path
 };
 use tracing::{debug, instrument, warn};
 use zip::{write::SimpleFileOptions, ZipWriter};
@@ -78,11 +78,11 @@ fn add_file_to_archive(
 ) -> color_eyre::Result<()> {
     zip.start_file(path.display(), *options)?;
 
-    let mut file = File::open(abs_path).wrap_err("Failed to open file")?;
-    let mut buffer = [0; 4096];
+    let mut reader = BufReader::with_capacity(8192, File::open(abs_path).wrap_err("Failed to open file")?);
+    let mut buffer = [0u8; 8192];
 
     loop {
-        let b = file.read(&mut buffer);
+        let b = reader.read(&mut buffer);
         if matches!(b, Ok(0) | Err(_)) {
             break;
         }

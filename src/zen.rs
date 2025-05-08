@@ -1,20 +1,22 @@
 use crate::{
     firefox_common, util::{fetch_text, roaming_data_base, snap_base}
 };
-use std::{path::PathBuf, sync::OnceLock};
+use color_eyre::eyre::ContextCompat;
+use std::{path::PathBuf, sync::Mutex};
 use tracing::instrument;
 
-static BETTER_ZEN_USER_JS: OnceLock<String> = OnceLock::new();
-fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
-    if BETTER_ZEN_USER_JS.get().is_none() {
+static BETTER_ZEN_USER_JS: Mutex<&'static str> = Mutex::new("");
+pub fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
+    let mut lock = BETTER_ZEN_USER_JS.lock().ok().context("Lock was poisoned")?;
+    if lock.is_empty() {
         let s = fetch_text(
             "Better Zen user.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/refs/heads/main/zen/user.js"
         )?;
-        BETTER_ZEN_USER_JS.set(s).unwrap();
+        *lock = String::leak(s);
     }
 
-    Ok(BETTER_ZEN_USER_JS.get().unwrap())
+    Ok(*lock)
 }
 
 pub fn zen_folder() -> Option<PathBuf> {

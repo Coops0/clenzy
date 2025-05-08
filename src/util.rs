@@ -1,11 +1,11 @@
-use crate::ARGS;
+use crate::{firefox, zen, Browser, ARGS};
 use color_eyre::eyre::Context;
 use serde_json::{Map, Value};
 use std::{
-    fmt::Display, fs, path::{Path, PathBuf}
+    fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
-use tracing::{debug, instrument, warn};
+use tracing::{debug, info, info_span, instrument, warn};
 
 #[instrument(skip(map))]
 pub fn get_or_insert_obj<'a>(
@@ -106,7 +106,7 @@ pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize]) -> 
 }
 
 #[instrument(skip(system))]
-pub fn get_matching_running_processes(system: &mut System, name: &str) -> String {
+fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     let lower_name = name.to_lowercase();
     system.refresh_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::default()));
     let processes = system.processes();
@@ -122,4 +122,58 @@ pub fn get_matching_running_processes(system: &mut System, name: &str) -> String
         .collect::<Vec<_>>();
 
     running_instances.join(", ")
+}
+
+#[instrument(skip(system))]
+pub fn check_if_running(system: &mut System, name: &str) {
+    if ARGS.get().unwrap().auto_confirm {
+        return;
+    }
+
+    let processes = get_matching_running_processes(system, name);
+    if processes.is_empty() {
+        return;
+    }
+
+    warn!(processes, "Please close all instances before debloating");
+    info!("Press any key to continue");
+    let _ = stdin().read_exact(&mut [0_u8]);
+
+    let processes = get_matching_running_processes(system, name);
+    if processes.is_empty() {
+        return;
+    }
+    warn!(processes, "Process still running");
+
+    // We don't need to check for auto confirm since it's checked at the start of the function
+    let should_continue =
+        inquire::prompt_confirmation("Continue anyway? (y/n)").unwrap_or_default();
+
+    if !should_continue {
+        process::exit(0);
+    }
+}
+
+pub fn check_and_fetch_resources(browsers: &[Browser]) {
+    if browsers.iter().any(|b| b.name.contains("Firefox")) {
+        start_fetch_resource("Betterfox User.js", firefox::get_better_fox_user_js);
+    }
+    if browsers.iter().any(|b| b.name.contains("Zen")) {
+        start_fetch_resource("Better Zen user.js", zen::get_better_zen_user_js);
+    }
+}
+
+fn start_fetch_resource<F, O>(name: &'static str, f: F)
+where
+    F: Fn() -> color_eyre::Result<O> + Send + 'static
+{
+    std::thread::spawn(move || {
+        let span = info_span!("fetching resource", name);
+        let _enter = span.enter();
+
+        match f() {
+            Ok(_) => debug!("Fetched resource"),
+            Err(why) => warn!(err = ?why, "Failed to fetch resource")
+        }
+    });
 }

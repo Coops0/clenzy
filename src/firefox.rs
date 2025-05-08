@@ -4,21 +4,25 @@ use crate::{
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{json, Value};
 use std::{
-    fs, path::{Path, PathBuf}, sync::OnceLock
+    fs, path::{Path, PathBuf}, sync::Mutex
 };
 use tracing::{debug, info_span, instrument, warn};
 
-static BETTER_FOX_USER_JS: OnceLock<String> = OnceLock::new();
-fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
-    if BETTER_FOX_USER_JS.get().is_none() {
+static BETTER_FOX_USER_JS: Mutex<&'static str> = Mutex::new("");
+pub fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
+    // We are holding this lock across this request because we don't want
+    // another thread to try to simultaneously fetch the resource
+    let mut lock = BETTER_FOX_USER_JS.lock().ok().context("Lock was poisoned")?;
+    if lock.is_empty() {
         let s = fetch_text(
             "Betterfox User.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js"
         )?;
-        BETTER_FOX_USER_JS.set(s).unwrap();
+        // SAFETY: This will only happen once during a program execution, and we really don't want to clone this string.
+        *lock = String::leak(s);
     }
 
-    Ok(BETTER_FOX_USER_JS.get().unwrap())
+    Ok(*lock)
 }
 
 pub fn firefox_folder() -> Option<PathBuf> {
@@ -96,6 +100,5 @@ fn xulstore(root: &Path) -> color_eyre::Result<()> {
         debug!("collapsed tabs toolbar");
     }
 
-    fs::write(&path, serde_json::to_string(&xulstore)?)
-        .map_err(color_eyre::eyre::Error::from)
+    fs::write(&path, serde_json::to_string(&xulstore)?).map_err(color_eyre::eyre::Error::from)
 }

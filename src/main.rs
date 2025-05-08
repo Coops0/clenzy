@@ -5,12 +5,10 @@ mod firefox_common;
 mod util;
 mod zen;
 
-use crate::util::get_matching_running_processes;
+use crate::util::{check_and_fetch_resources, check_if_running};
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{
-    env, fmt::Display, io::{stdin, Read}, path::PathBuf, sync::OnceLock
-};
+use std::{env, fmt::Display, path::PathBuf, sync::OnceLock};
 use sysinfo::System;
 use tracing::{info, info_span, level_filters::LevelFilter, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -18,9 +16,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 #[derive(Parser, Default)]
 #[command(version)]
 pub struct Args {
-    /// Print extra debug information
-    #[clap(short, long, default_value_t = false)]
-    pub verbose: bool,
+    /// Print extra debug information (max 3 levels with -vvv)
+    #[clap(short, long, action = ArgAction::Count, default_value_t = 0)]
+    pub verbose: u8,
 
     /// Assume yes to all prompts
     #[clap(long = "auto-confirm", short = 'Y', default_value_t = false)]
@@ -28,7 +26,11 @@ pub struct Args {
 
     /// Disable setting browsers to use vertical tabs
     #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
-    pub vertical_tabs: bool
+    pub vertical_tabs: bool,
+
+    /// Disable the creation of backups
+    #[clap(long = "no-backup", short = 'B', action = ArgAction::SetFalse, default_value_t = true)]
+    pub backup: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -41,18 +43,7 @@ fn main() -> color_eyre::Result<()> {
 
     let args = ARGS.get_or_init(Args::parse);
 
-    let mut filter =
-        EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env()?;
-
-    let mut fmt_layer = tracing_subscriber::fmt::layer().without_time().pretty();
-    if cfg!(debug_assertions) || args.verbose {
-        filter = filter.add_directive("browser_debloat=debug".parse()?);
-    } else {
-        fmt_layer =
-            fmt_layer.with_target(false).with_level(true).with_file(false).with_line_number(false);
-    }
-
-    tracing_subscriber::registry().with(filter).with(fmt_layer).init();
+    setup_logging(args)?;
 
     let browsers: [BrowserTuple; 7] = [
         ("Brave", brave::brave_folder(), brave::debloat),
@@ -61,7 +52,7 @@ fn main() -> color_eyre::Result<()> {
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
         ("Firefox (Snap)", firefox::firefox_snap_folder(), firefox::debloat),
         ("Zen", zen::zen_folder(), zen::debloat),
-        ("Zen (Snap)", zen::zen_snap_folder(), zen::debloat)
+        ("Zen (Unofficial Snap)", zen::zen_snap_folder(), zen::debloat)
     ];
 
     let browsers = browsers
@@ -74,6 +65,9 @@ fn main() -> color_eyre::Result<()> {
         no_browsers_msg(&browsers);
         return Ok(());
     }
+
+    // Fetches Firefox and Zen user.js scripts immediately
+    check_and_fetch_resources(&browsers);
 
     let browsers = if args.auto_confirm {
         browsers
@@ -108,10 +102,44 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
+fn setup_logging(args: &Args) -> color_eyre::Result<()> {
+    let filter =
+        EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env()?;
+    let fmt_layer = tracing_subscriber::fmt::layer().without_time();
+
+    let mut verbosity = args.verbose;
+    if cfg!(debug_assertions) {
+        verbosity = verbosity.max(2);
+    }
+
+    if verbosity > 3 {
+        warn!("Verbosity level {verbosity} is too high, defaulting to max of 3");
+    }
+
+    let filter = match verbosity {
+        0 => {
+            let fmt_layer = fmt_layer
+                .compact()
+                .with_target(false)
+                .with_level(true)
+                .with_file(false)
+                .with_line_number(false);
+            tracing_subscriber::registry().with(filter).with(fmt_layer).init();
+            return Ok(());
+        }
+        1 => filter.add_directive("browser_debloat=debug".parse()?),
+        2 => filter.add_directive("browser_debloat=trace".parse()?),
+        _ => EnvFilter::builder().with_default_directive(LevelFilter::TRACE.into()).from_env()?
+    };
+
+    tracing_subscriber::registry().with(filter).with(fmt_layer).init();
+    Ok(())
+}
+
 type BrowserTuple = (&'static str, Option<PathBuf>, fn(PathBuf) -> color_eyre::Result<()>);
 
-struct Browser {
-    name: &'static str,
+pub struct Browser {
+    pub name: &'static str,
     folder: PathBuf,
     debloat: fn(PathBuf) -> color_eyre::Result<()>
 }
@@ -122,24 +150,6 @@ impl Display for Browser {
     }
 }
 
-fn check_if_running(system: &mut System, name: &str) {
-    if ARGS.get().unwrap().auto_confirm {
-        return;
-    }
-
-    let processes = get_matching_running_processes(system, name);
-    if processes.is_empty() {
-        return;
-    }
-
-    warn!(processes, "Please close all instances before debloating");
-    info!("Press any key to continue");
-    let _ = stdin().read_exact(&mut [0_u8]);
-
-    if !get_matching_running_processes(system, name).is_empty() {
-        warn!("Process still running, continuing anyway");
-    }
-}
 fn no_browsers_msg(browsers: &[Browser]) {
     info!("No supported browsers found on your computer.");
     let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");

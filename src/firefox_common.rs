@@ -1,45 +1,15 @@
 use crate::{
     archive::add_to_archive, util::{select_profiles, timestamp, validate_profile_dir}, ARGS
 };
+use ahash::AHasher;
 use color_eyre::eyre::{Context, ContextCompat};
 use fs::File;
 use ini::Ini;
-use inquire::error::InquireResult;
 use std::{
-    fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
+    fmt::Display, fs, hash::Hasher, io::{BufReader, Read}, path::{Path, PathBuf}, sync::LazyLock
 };
 use tracing::{debug, info, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
-
-#[derive(Debug)]
-struct FirefoxProfile<'a> {
-    name: &'a str,
-    path: PathBuf
-}
-
-#[derive(Debug)]
-pub struct OwnedFirefoxProfile {
-    pub name: String,
-    pub path: PathBuf
-}
-
-impl Display for FirefoxProfile<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl Display for OwnedFirefoxProfile {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl From<FirefoxProfile<'_>> for OwnedFirefoxProfile {
-    fn from(profile: FirefoxProfile) -> Self {
-        Self { name: profile.name.to_owned(), path: profile.path }
-    }
-}
 
 #[instrument(skip(fetch_user_js, additional_snippets))]
 pub fn debloat<'a, F>(
@@ -95,9 +65,11 @@ where
         let span = info_span!("Debloating profile", profile = %profile);
         let _enter = span.enter();
 
-        if let Err(why) = backup_profile(profile) {
-            warn!(err = ?why, "Failed to backup profile");
-            continue;
+        if ARGS.get().unwrap().backup {
+            if let Err(why) = backup_profile(profile) {
+                warn!(err = ?why, "Failed to backup profile");
+                continue;
+            }
         }
 
         if let Err(why) = install_user_js(profile, &fetch_user_js, additional_snippets) {
@@ -164,10 +136,6 @@ where
     F: Fn() -> color_eyre::Result<&'a str>
 {
     let user_js_path = profile.path.join("user.js");
-    if prompt_should_skip_overwrite_user_js(profile, &user_js_path)? {
-        debug!(path = %user_js_path.display(), "Skipping user.js overwrite");
-        return Ok(());
-    }
 
     let configured_user_js = {
         let user_js = fetch_user_js()?;
@@ -192,19 +160,86 @@ where
         Ok::<String, color_eyre::eyre::Error>(lines.join::<&str>("\n"))
     }?;
 
+    // Checks if user.js exists and content differs from configured_user_js.
+    // Assumes any error means the file doesn't exist.
+    if check_user_js_exists(profile, &user_js_path, &configured_user_js).unwrap_or_default() {
+        debug!(path = %user_js_path.display(), "not overwriting user.js");
+        return Ok(());
+    }
+
     fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }
 
-fn prompt_should_skip_overwrite_user_js(
+// returns Ok(true) if exists
+fn check_user_js_exists(
     profile: &FirefoxProfile,
-    path: &Path
-) -> InquireResult<bool> {
+    path: &Path,
+    user_js_str: &str
+) -> color_eyre::Result<bool> {
     if !path.exists() || ARGS.get().unwrap().auto_confirm {
         return Ok(false);
+    }
+
+    // Read hash of existing user.js
+    let fs_hash = {
+        let mut fs_hasher = AHasher::default();
+        let mut reader = BufReader::with_capacity(8192, File::open(path)?);
+        let mut buffer = [0u8; 8192];
+        loop {
+            if reader.read(&mut buffer)? == 0 {
+                break;
+            }
+
+            fs_hasher.write(&buffer);
+        }
+
+        fs_hasher.finish()
+    };
+
+    let user_js_hash = {
+        let mut user_js_hasher = AHasher::default();
+        user_js_hasher.write(user_js_str.as_bytes());
+        user_js_hasher.finish()
+    };
+
+    if fs_hash == user_js_hash {
+        debug!(path = %path.display(), "user.js already exists and is the same");
+        return Ok(true);
     }
 
     inquire::Confirm::new(&format!(
         "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
     ))
     .prompt()
+    .map_err(color_eyre::eyre::Error::from)
+}
+
+#[derive(Debug)]
+struct FirefoxProfile<'a> {
+    name: &'a str,
+    path: PathBuf
+}
+
+#[derive(Debug)]
+pub struct OwnedFirefoxProfile {
+    pub name: String,
+    pub path: PathBuf
+}
+
+impl Display for FirefoxProfile<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl Display for OwnedFirefoxProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl From<FirefoxProfile<'_>> for OwnedFirefoxProfile {
+    fn from(profile: FirefoxProfile) -> Self {
+        Self { name: profile.name.to_owned(), path: profile.path }
+    }
 }

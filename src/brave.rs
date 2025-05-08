@@ -45,7 +45,7 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
         }
         Err(why) => {
             warn!(err = ?why, "Failed to get profiles, falling back to default");
-            vec![Profile { name: String::from("Default"), path: path.join("Default") }]
+            vec![BraveProfile { name: String::from("Default"), path: path.join("Default") }]
         }
     };
 
@@ -74,17 +74,6 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
     Ok(())
 }
 
-struct Profile {
-    name: String,
-    path: PathBuf
-}
-
-impl Display for Profile {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
 #[instrument]
 fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     let local_state_path = root.join("Local State");
@@ -104,7 +93,7 @@ fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
 fn try_to_get_profiles(
     local_state: &Map<String, Value>,
     root: &Path
-) -> color_eyre::Result<Vec<Profile>> {
+) -> color_eyre::Result<Vec<BraveProfile>> {
     let profile = local_state
         .get("profile")
         .and_then(Value::as_object)
@@ -120,7 +109,7 @@ fn try_to_get_profiles(
         .filter_map(|(n, o)| {
             let name = o.get("name").and_then(Value::as_str)?.to_owned();
             let path = root.join(n);
-            Some(Profile { name, path })
+            Some(BraveProfile { name, path })
         })
         .filter(|profile| validate_profile_dir(&profile.path))
         .collect::<Vec<_>>();
@@ -196,11 +185,14 @@ fn update_local_state(mut local_state: Map<String, Value>, root: &Path) -> color
 #[instrument]
 fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
-    let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
-    fs::copy(&path, &backup)?;
-    info!("Backed up Brave preferences file");
-    debug!("backup file path: {}", backup.display());
+    if ARGS.get().unwrap().backup {
+        let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
+
+        fs::copy(&path, &backup)?;
+        info!("Backed up Brave preferences file");
+        debug!("backup file path: {}", backup.display());
+    }
 
     let prefs_str = fs::read_to_string(&path);
     let Value::Object(mut prefs) = serde_json::from_str::<Value>(&prefs_str?)? else {
@@ -375,7 +367,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     if let Some(omnibox) = get_or_insert_obj(&mut prefs, "omnibox") {
-        // show entire URL always
+        // show the entire URL always
         omnibox.insert(s!("prevent_url_elisions"), json!(true));
         omnibox.insert(s!("shown_count_history_scope_promo"), json!(false));
         debug!("enabled showing full url and history scope promo");
@@ -411,16 +403,17 @@ static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
 #[instrument]
 fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
-    let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
-
-    // This is less important to have a backup of, so just warn but continue
-    match fs::copy(&path, &backup) {
-        Ok(_) => {
-            info!("Backed up Brave feature state file");
-            debug!("backup dir: {}", backup.display());
-        }
-        Err(why) => {
-            warn!(err = ?why, "Failed to backup Brave feature state file, continuing anyway");
+    if ARGS.get().unwrap().backup {
+        let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
+        // This is less important to have a backup of, so just warn but continue
+        match fs::copy(&path, &backup) {
+            Ok(_) => {
+                info!("Backed up Brave feature state file");
+                debug!("backup dir: {}", backup.display());
+            }
+            Err(why) => {
+                warn!(err = ?why, "Failed to backup Brave feature state file, continuing anyway");
+            }
         }
     }
 
@@ -450,4 +443,15 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
 
     debug!("disabled chrome features");
     Ok(())
+}
+
+struct BraveProfile {
+    name: String,
+    path: PathBuf
+}
+
+impl Display for BraveProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
