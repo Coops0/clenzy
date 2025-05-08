@@ -2,7 +2,6 @@
 
 - flat pak?
 - other browsers?
-- optimize cargo deps features (disable default-features)
 - redo demo:
     - redo the gif to show fixed logging
     - new brave screenshots: change ntp background to color, and show now we hide the clock
