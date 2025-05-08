@@ -12,12 +12,12 @@ use tracing::{debug, info, info_span, instrument, warn};
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 pub fn brave_nightly_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 pub fn brave_snap_folder() -> Option<PathBuf> {
@@ -27,13 +27,13 @@ pub fn brave_snap_folder() -> Option<PathBuf> {
         .join(".config")
         .join("BraveSoftware")
         .join("Brave-Browser");
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 #[instrument]
 pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
     if cfg!(target_os = "windows") {
-        path = path.join("User Data")
+        path = path.join("User Data");
     }
 
     let local_state = get_local_state(&path)?;
@@ -50,7 +50,7 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
     };
 
     match update_local_state(local_state, &path) {
-        Ok(_) => debug!("Updated local state to disable default browser confirmation spam"),
+        Ok(()) => debug!("Updated local state to disable default browser confirmation spam"),
         Err(why) => warn!(err = ?why, "Failed to update local state")
     }
 
@@ -92,7 +92,7 @@ fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
         fs::read_to_string(&local_state_path).wrap_err("Failed to read Local State")?;
 
     let Value::Object(local_state) =
-        serde_json::from_str::<Value>(&local_state_str).wrap_err("Failed to read Local State")?
+        serde_json::from_str::<Value>(&local_state_str).wrap_err("Failed to parse Local State")?
     else {
         bail!("Failed to cast Local State to object");
     };
@@ -100,8 +100,11 @@ fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     Ok(local_state)
 }
 
-#[instrument(skip_all)]
-fn try_to_get_profiles(local_state: &Map<String, Value>, root: &Path) -> color_eyre::Result<Vec<Profile>> {
+#[instrument(skip(local_state))]
+fn try_to_get_profiles(
+    local_state: &Map<String, Value>,
+    root: &Path
+) -> color_eyre::Result<Vec<Profile>> {
     let profile = local_state
         .get("profile")
         .and_then(Value::as_object)
@@ -142,7 +145,7 @@ fn try_to_get_profiles(local_state: &Map<String, Value>, root: &Path) -> color_e
     // Add any remaining profiles that were not in the order array
     profiles.extend(info_cache);
 
-    // We're only making this an error because above we're falling back to using default
+    // We're raising an error because above we're falling back to using default
     // only if this function returns Err
     if profiles.is_empty() {
         bail!("No profiles found");
@@ -150,22 +153,21 @@ fn try_to_get_profiles(local_state: &Map<String, Value>, root: &Path) -> color_e
 
     // Have preselected any last active profiles.
     // If there are none, then just select all.
-    let selected = profile
-        .get("last_active_profiles")
-        .and_then(Value::as_array)
-        .map(|a| {
+    let selected = profile.get("last_active_profiles").and_then(Value::as_array).map_or_else(
+        || (0..profiles.len()).collect(),
+        |a| {
             a.iter()
                 .filter_map(Value::as_str)
                 .filter_map(|profile_name| {
                     profiles.iter().position(|prof| prof.name == profile_name)
                 })
                 .collect::<Vec<_>>()
-        })
-        .unwrap_or_else(|| (0..profiles.len()).collect());
+        }
+    );
 
     let profiles = select_profiles(profiles, &selected);
     if profiles.is_empty() {
-        // If they explicitly select no profiles, they don't fallback to default
+        // If they explicitly select no profiles, then don't fallback to default
         return Ok(Vec::new());
     }
 
@@ -191,18 +193,18 @@ fn update_local_state(mut local_state: Map<String, Value>, root: &Path) -> color
         .wrap_err("Failed to write Local State")
 }
 
-#[instrument(skip_all)]
+#[instrument]
 fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
     let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
     fs::copy(&path, &backup)?;
-    info!("Backed up Brave preferences to {}", backup.display());
-    debug!("backup dir: {}", backup.display());
+    info!("Backed up Brave preferences file");
+    debug!("backup file path: {}", backup.display());
 
     let prefs_str = fs::read_to_string(&path);
     let Value::Object(mut prefs) = serde_json::from_str::<Value>(&prefs_str?)? else {
-        bail!("Failed to parse preferences as JSON");
+        bail!("Failed to cast preferences to an object");
     };
 
     if let Some(bookmark_bar) = get_or_insert_obj(&mut prefs, "bookmark_bar") {
@@ -240,6 +242,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         debug!("dismissed brave search conversation");
     }
 
+    // This is disabled by default anyways
     if let Some(settings) = get_or_insert_obj(brave, "settings") {
         settings.insert(s!("force_google_safesearch"), json!(false));
         debug!("disabled force google safesearch");
@@ -253,7 +256,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     brave.insert(s!("enable_closing_last_tab"), json!(true));
     brave.insert(s!("enable_window_closing_confirm"), json!(true));
     brave.insert(s!("location_bar_is_wide"), json!(true));
-    debug!("enabled closing last tab and wide location bar");
+    debug!("enabled closing last tab, window closing confirm, and wide location bar");
 
     if let Some(new_tab_page) = get_or_insert_obj(brave, "new_tab_page") {
         new_tab_page.insert(s!("hide_all_widgets"), json!(true));
@@ -261,7 +264,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         new_tab_page.insert(s!("show_branded_background_image"), json!(false));
         new_tab_page.insert(s!("show_brave_news"), json!(false));
         new_tab_page.insert(s!("show_brave_vpn"), json!(false));
-        new_tab_page.insert(s!("show_clock"), json!(true));
+        new_tab_page.insert(s!("show_clock"), json!(false));
         new_tab_page.insert(s!("show_rewards"), json!(false));
         new_tab_page.insert(s!("show_stats"), json!(false));
         new_tab_page.insert(s!("show_together"), json!(false));
@@ -335,7 +338,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         debug!("marked welcome page as seen");
     }
 
-    // -- END BRAVE SECTION --
+    // -- END BRAVE MAP SECTION --
 
     if let Some(custom_links) = get_or_insert_obj(&mut prefs, "custom_links") {
         custom_links.insert(s!("initialized"), json!(true));
@@ -362,13 +365,13 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
                 iph_discard_ring.insert(s!("is_dismissed"), json!(true));
             }
         }
-        debug!("disabled in product help");
+        debug!("dismissed some in product help features");
     }
 
     if let Some(ntp) = get_or_insert_obj(&mut prefs, "ntp") {
         ntp.insert(s!("shortcust_visible"), json!(false));
         ntp.insert(s!("use_most_visited_tiles"), json!(false));
-        debug!("hid ntp widgets");
+        debug!("hid new tab page widgets");
     }
 
     if let Some(omnibox) = get_or_insert_obj(&mut prefs, "omnibox") {
@@ -405,14 +408,21 @@ static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
         .collect()
 });
 
-#[instrument(skip_all)]
+#[instrument]
 fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
 
-    let _ = fs::copy(&path, &backup);
-    info!("Backed up brave chrome feature state");
-    debug!("backup dir: {}", backup.display());
+    // This is less important to have a backup of, so just warn but continue
+    match fs::copy(&path, &backup) {
+        Ok(_) => {
+            info!("Backed up Brave feature state file");
+            debug!("backup dir: {}", backup.display());
+        }
+        Err(why) => {
+            warn!(err = ?why, "Failed to backup Brave feature state file, continuing anyway");
+        }
+    }
 
     let prefs_str = fs::read_to_string(&path).unwrap_or_default();
     let mut prefs_parsed =
@@ -430,7 +440,7 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         let v = json!(feature);
         if !disable_features.contains(&v) {
             disable_features.push(v);
-            debug!("added {} to disable-features", feature);
+            debug!("added {} to disabled features", feature);
         }
     }
 

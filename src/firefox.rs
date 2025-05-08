@@ -15,7 +15,7 @@ fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
             "Betterfox User.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js"
         )?;
-        BETTER_FOX_USER_JS.set(s).unwrap()
+        BETTER_FOX_USER_JS.set(s).unwrap();
     }
 
     Ok(BETTER_FOX_USER_JS.get().unwrap())
@@ -30,12 +30,12 @@ pub fn firefox_folder() -> Option<PathBuf> {
         roaming_data_base()?.join(".mozilla").join("firefox")
     };
 
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 pub fn firefox_snap_folder() -> Option<PathBuf> {
     let path = snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox");
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 #[instrument]
@@ -61,7 +61,7 @@ pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
         let _enter = span.enter();
 
         match xulstore(&profile.path) {
-            Ok(_) => debug!("updated xulstore"),
+            Ok(()) => debug!("done updating"),
             Err(why) => warn!(err = %why, "Failed to update")
         }
     }

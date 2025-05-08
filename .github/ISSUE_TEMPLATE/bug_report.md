@@ -14,4 +14,7 @@ A clear and concise description of what the bug is, or if it's missing support.
 e.g. macOS 15.4.1 (24E263), M3
 
 **Clenzy Version** 
-e.g. 0.1.0 (`clenzy -v`)
+e.g. 0.1.0 (`clenzy -V`)
+
+**Verbose Output**
+Run the program with the `-v` flag and paste the output here.

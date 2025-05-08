@@ -99,7 +99,7 @@ fn main() -> color_eyre::Result<()> {
         check_if_running(&mut system, browser.name);
 
         match (browser.debloat)(browser.folder) {
-            Ok(_) => info!("Finished debloating browser"),
+            Ok(()) => info!("Finished debloating browser"),
             Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name)
         }
     }

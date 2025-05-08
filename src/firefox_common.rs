@@ -37,11 +37,11 @@ impl Display for OwnedFirefoxProfile {
 
 impl From<FirefoxProfile<'_>> for OwnedFirefoxProfile {
     fn from(profile: FirefoxProfile) -> Self {
-        OwnedFirefoxProfile { name: profile.name.to_string(), path: profile.path }
+        Self { name: profile.name.to_owned(), path: profile.path }
     }
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(fetch_user_js, additional_snippets))]
 pub fn debloat<'a, F>(
     path: PathBuf,
     fetch_user_js: F,
@@ -72,7 +72,7 @@ where
     debug!(len = %defaults, "default profiles");
 
     // Make sure defaults are first
-    let profiles = [profiles.0, profiles.1]
+    let profiles = <[_; 2]>::from(profiles)
         .concat()
         .into_iter()
         .map(|(name, profile_path, _)| FirefoxProfile { name, path: path.join(profile_path) })
@@ -142,7 +142,7 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
             entry,
             &profile.path,
             &options,
-            // skip these unnecessary huge dirs
+            // skip these unnecessary huge dirs/files
             &DEFAULT_FIREFOX_SKIP
         ) {
             warn!(err = ?why, "Failed to add entry to archive");
@@ -154,7 +154,7 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
     zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(fetch_user_js, additional_snippets))]
 fn install_user_js<'a, F>(
     profile: &FirefoxProfile,
     fetch_user_js: F,
@@ -201,7 +201,7 @@ fn prompt_should_skip_overwrite_user_js(
 ) -> InquireResult<bool> {
     if !path.exists() || ARGS.get().unwrap().auto_confirm {
         return Ok(false);
-    };
+    }
 
     inquire::Confirm::new(&format!(
         "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"

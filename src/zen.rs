@@ -11,7 +11,7 @@ fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
             "Better Zen user.js",
             "https://raw.githubusercontent.com/yokoffing/Betterfox/refs/heads/main/zen/user.js"
         )?;
-        BETTER_ZEN_USER_JS.set(s).unwrap()
+        BETTER_ZEN_USER_JS.set(s).unwrap();
     }
 
     Ok(BETTER_ZEN_USER_JS.get().unwrap())
@@ -24,14 +24,14 @@ pub fn zen_folder() -> Option<PathBuf> {
     } else {
         base.join(".zen")
     };
-    
-    if path.exists() { Some(path) } else { None }
+
+    path.exists().then_some(path)
 }
 
 pub fn zen_snap_folder() -> Option<PathBuf> {
     // This is unofficial
     let path = snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen");
-    if path.exists() { Some(path) } else { None }
+    path.exists().then_some(path)
 }
 
 #[instrument]

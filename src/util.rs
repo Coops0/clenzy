@@ -13,7 +13,7 @@ pub fn get_or_insert_obj<'a>(
     key: &str
 ) -> Option<&'a mut Map<String, Value>> {
     let ret = map
-        .entry(key.to_string())
+        .entry(key.to_owned())
         .or_insert_with(|| {
             debug!("Inserting");
             Value::Object(serde_json::Map::new())
@@ -43,8 +43,14 @@ pub fn local_data_base() -> Option<PathBuf> {
     }
 }
 
+#[allow(clippy::if_then_some_else_none)]
 pub fn snap_base() -> Option<PathBuf> {
-    if cfg!(target_os = "linux") { Some(dirs::home_dir()?.join("snap")) } else { None }
+    if cfg!(target_os = "linux") {
+        // Naive approach right now, maybe also check /snap/?
+        Some(dirs::home_dir()?.join("snap"))
+    } else {
+        None
+    }
 }
 
 // 202501192003
@@ -111,7 +117,7 @@ pub fn get_matching_running_processes(system: &mut System, name: &str) -> String
         .values()
         .filter_map(|p| {
             let name = p.name().to_str()?;
-            if name.to_lowercase().contains(&lower_name) { Some(name) } else { None }
+            name.to_lowercase().contains(&lower_name).then_some(name)
         })
         .collect::<Vec<_>>();
 
