@@ -80,7 +80,7 @@ where
         debug!("Finished debloating profile");
     }
 
-    Ok(profiles.into_iter().map(Into::into).collect::<Vec<_>>())
+    Ok(profiles.into_iter().map(FirefoxProfile::into_owned).collect::<Vec<_>>())
 }
 
 static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
@@ -239,8 +239,8 @@ impl Display for OwnedFirefoxProfile {
     }
 }
 
-impl From<FirefoxProfile<'_>> for OwnedFirefoxProfile {
-    fn from(profile: FirefoxProfile) -> Self {
-        Self { name: profile.name.to_owned(), path: profile.path }
+impl FirefoxProfile<'_> {
+    pub fn into_owned(self) -> OwnedFirefoxProfile {
+        OwnedFirefoxProfile { name: self.name.to_owned(), path: self.path }
     }
 }
