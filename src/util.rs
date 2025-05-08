@@ -172,7 +172,7 @@ where
         let _enter = span.enter();
 
         match f() {
-            Ok(_) => debug!("Fetched resource"),
+            Ok(_) => debug!("fetched resource"),
             Err(why) => warn!(err = ?why, "Failed to fetch resource")
         }
     });

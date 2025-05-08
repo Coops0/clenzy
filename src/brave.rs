@@ -8,7 +8,7 @@ use serde_json::{json, Map, Value};
 use std::{
     fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
-use tracing::{debug, info, info_span, instrument, warn};
+use tracing::{debug, info, info_span, instrument, trace, warn};
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
@@ -202,7 +202,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     if let Some(bookmark_bar) = get_or_insert_obj(&mut prefs, "bookmark_bar") {
         bookmark_bar.insert(s!("show_on_all_tabs"), json!(false));
         bookmark_bar.insert(s!("show_tab_groups"), json!(false));
-        debug!("disabled bookmark bar on all tabs and tab groups");
+        trace!("disabled bookmark bar on all tabs and tab groups");
     }
 
     let brave = prefs
@@ -216,39 +216,39 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         ai_chat.insert(s!("show_toolbar_button"), json!(false));
         ai_chat.insert(s!("storage_enabled"), json!(false));
         ai_chat.insert(s!("tab_organization_enabled"), json!(false));
-        debug!("disabled brave AI chat");
+        trace!("disabled brave AI chat");
     }
 
     brave.insert(s!("always_show_bookmark_bar_on_ntp"), json!(true));
     // People will want this disabled by default probably
     brave.insert(s!("autocomplete_enabled"), json!(true));
-    debug!("enabled bookmark bar (on new tab page) and autocomplete");
+    trace!("enabled bookmark bar (on new tab page) and autocomplete");
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
         brave_ads.insert(s!("should_allow_ads_subdivision_targeting"), json!(false));
-        debug!("disabled brave ads");
+        trace!("disabled brave ads");
     }
 
     if let Some(brave_search_conversation) = get_or_insert_obj(brave, "brave_search_conversion") {
         brave_search_conversation.insert(s!("dismissed"), json!(false));
-        debug!("dismissed brave search conversation");
+        trace!("dismissed brave search conversation");
     }
 
     // This is disabled by default anyways
     if let Some(settings) = get_or_insert_obj(brave, "settings") {
         settings.insert(s!("force_google_safesearch"), json!(false));
-        debug!("disabled force google safesearch");
+        trace!("disabled force google safesearch");
     }
 
     if let Some(brave_vpn) = get_or_insert_obj(brave, "brave_vpn") {
         brave_vpn.insert(s!("show_button"), json!(false));
-        debug!("hid brave VPN button");
+        trace!("hid brave VPN button");
     }
 
     brave.insert(s!("enable_closing_last_tab"), json!(true));
     brave.insert(s!("enable_window_closing_confirm"), json!(true));
     brave.insert(s!("location_bar_is_wide"), json!(true));
-    debug!("enabled closing last tab, window closing confirm, and wide location bar");
+    trace!("enabled closing last tab, window closing confirm, and wide location bar");
 
     if let Some(new_tab_page) = get_or_insert_obj(brave, "new_tab_page") {
         new_tab_page.insert(s!("hide_all_widgets"), json!(true));
@@ -261,27 +261,27 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         new_tab_page.insert(s!("show_stats"), json!(false));
         new_tab_page.insert(s!("show_together"), json!(false));
         new_tab_page.insert(s!("shows_options"), json!(1));
-        debug!("hid new tab page widgets");
+        trace!("hid new tab page widgets");
     }
 
     brave.insert(s!("other_search_engines_enabled"), json!(true));
-    debug!("enabled other search engines");
+    trace!("enabled other search engines");
 
     if let Some(rewards) = get_or_insert_obj(brave, "rewards") {
         rewards.insert(s!("show_brave_rewards_button_in_location_bar"), json!(false));
-        debug!("hid brave rewards button");
+        trace!("hid brave rewards button");
     }
 
     if let Some(shields) = get_or_insert_obj(brave, "shields") {
         shields.insert(s!("advanced_view_enabled"), json!(true));
         shields.insert(s!("stats_badge_visible"), json!(false));
-        debug!("enabled shields advanced view and hid stats badge");
+        trace!("enabled shields advanced view and hid stats badge");
     }
 
     brave.insert(s!("show_fullscreen_reminder"), json!(false));
     brave.insert(s!("show_side_panel_button"), json!(false));
     brave.insert(s!("show_bookmarks_button"), json!(false));
-    debug!("hid fullscreen reminder, side panel button, and bookmarks button");
+    trace!("hid fullscreen reminder, side panel button, and bookmarks button");
 
     if let Some(sidebar) = get_or_insert_obj(brave, "sidebar") {
         sidebar.insert(s!("hidden_built_in_items"), json!([7]));
@@ -296,7 +296,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
             ])
         );
         sidebar.insert(s!("sidebar_show_option"), json!(3));
-        debug!("hid sidebar items");
+        trace!("hid sidebar items");
     }
 
     if ARGS.get().unwrap().vertical_tabs
@@ -307,27 +307,27 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         tabs.insert(s!("vertical_tabs_expanded_width"), json!(114));
         tabs.insert(s!("vertical_tabs_floating_enabled"), json!(true));
         tabs.insert(s!("vertical_tabs_show_title_on_window"), json!(false));
-        debug!("enabled vertical tabs");
+        trace!("enabled vertical tabs");
     }
 
     if let Some(wallet) = get_or_insert_obj(brave, "wallet") {
         wallet.insert(s!("show_wallet_icon_on_toolbar"), json!(false));
         wallet.insert(s!("should_show_wallet_suggestion_badge"), json!(false));
-        debug!("hid wallet button");
+        trace!("hid wallet button");
     }
 
     brave.insert(s!("tabs_search_show"), json!(false));
     brave.insert(s!("webtorrent_enabled"), json!(false));
-    debug!("disabled webtorrent and hid tabs search");
+    trace!("disabled webtorrent and hid tabs search");
 
     if let Some(today) = get_or_insert_obj(brave, "today") {
         today.insert(s!("should_show_toolbar_button"), json!(false));
-        debug!("hid today toolbar button");
+        trace!("hid today toolbar button");
     }
 
     if let Some(browser) = get_or_insert_obj(brave, "browser") {
         browser.insert(s!("has_seen_welcome_page"), json!(true));
-        debug!("marked welcome page as seen");
+        trace!("marked welcome page as seen");
     }
 
     // -- END BRAVE MAP SECTION --
@@ -337,7 +337,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     prefs.insert(s!("enable_do_not_track"), json!(true));
-    debug!("enabled do not track");
+    trace!("enabled do not track");
 
     if let Some(in_product_help) = get_or_insert_obj(&mut prefs, "in_product_help") {
         if let Some(new_badge) = get_or_insert_obj(in_product_help, "new_badge") {
@@ -357,25 +357,26 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
                 iph_discard_ring.insert(s!("is_dismissed"), json!(true));
             }
         }
-        debug!("dismissed some in product help features");
+
+        trace!("dismissed some in product help features");
     }
 
     if let Some(ntp) = get_or_insert_obj(&mut prefs, "ntp") {
         ntp.insert(s!("shortcust_visible"), json!(false));
         ntp.insert(s!("use_most_visited_tiles"), json!(false));
-        debug!("hid new tab page widgets");
+        trace!("hid new tab page widgets");
     }
 
     if let Some(omnibox) = get_or_insert_obj(&mut prefs, "omnibox") {
         // show the entire URL always
         omnibox.insert(s!("prevent_url_elisions"), json!(true));
         omnibox.insert(s!("shown_count_history_scope_promo"), json!(false));
-        debug!("enabled showing full url and history scope promo");
+        trace!("enabled showing full url and history scope promo");
     }
 
     if let Some(search) = get_or_insert_obj(&mut prefs, "search") {
         search.insert(s!("suggest_enabled"), json!(true));
-        debug!("enabled search suggestions");
+        trace!("enabled search suggestions");
     }
 
     if let Some(privacy_sandbox) = get_or_insert_obj(&mut prefs, "privacy_sandbox") {
@@ -385,7 +386,8 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
             m1.insert(s!("fledge_enabled"), json!(false));
             m1.insert(s!("topics_enabled"), json!(false));
         }
-        debug!("disabled ad measurement, fledge, and topics");
+
+        trace!("disabled ad measurement, fledge, and topics");
     }
 
     let prefs_str = serde_json::to_string(&prefs)?;
@@ -428,6 +430,7 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         .or_insert_with(|| Value::Array(Vec::new()))
         .as_array_mut()
         .context("failed to get disable-features array")?;
+    let before = disable_features.len();
 
     for feature in DISABLED_FEATURES.iter() {
         let v = json!(feature);
@@ -437,11 +440,13 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         }
     }
 
+    debug!("disabled additional {} features", disable_features.len() - before);
+
     let prefs_str = serde_json::to_string(&prefs)?;
     fs::write(&path, prefs_str)
         .wrap_err_with(|| format!("failed to write preferences to {}", path.display()))?;
 
-    debug!("disabled chrome features");
+    debug!("wrote new chrome preferences");
     Ok(())
 }
 

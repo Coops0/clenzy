@@ -196,6 +196,7 @@ fn check_user_js_exists(
         fs_hasher.finish()
     };
 
+    // Hash of the generated user.js string
     let user_js_hash = {
         let mut user_js_hasher = AHasher::default();
         user_js_hasher.write(user_js_str.as_bytes());
@@ -204,7 +205,7 @@ fn check_user_js_exists(
 
     if fs_hash == user_js_hash {
         debug!(path = %path.display(), "user.js already exists and is the same");
-        return Ok(true);
+        return Ok(false);
     }
 
     inquire::Confirm::new(&format!(
