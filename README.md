@@ -55,7 +55,7 @@ Modern browsers come loaded with:
 - Embedded AI assistants
 - Cryptocurrency wallets
 - Tracking mechanisms
-- Bloated features
+- Bloat
 
 These not only slow down your browsing experience but also compromise your privacy. I got tired of spending 30 minutes everytime I installed a browser to disable features and configure individual flags.
 
@@ -63,7 +63,7 @@ These not only slow down your browsing experience but also compromise your priva
 #### Open an issue, but I will not add support for:
 - Google Chrome, Edge, Opera (including GX): They are too far gone, and whoever uses them most likely doesn't care about their privacy.
 - Vivaldi: I don't like it, and with all its "features", it's very subjective to configure.
-- Any other already light browser. E.g., Safari, Arc, Waterfox, Pale Moon, Orion, Tor, Floorp(?), Cromite, Bromite, Thorium, Ungoogled Chromium, etc.
+- Any already light browser. E.g., Safari, Arc, Waterfox, Pale Moon, Orion, Tor, Floorp(?), Cromite, Bromite, Thorium, Ungoogled Chromium, etc.
   - Zen is only here for a small few User.js tweaks [in the official Betterfox repo](https://github.com/yokoffing/Betterfox/blob/main/zen/user.js).
 - ANY AI browser (e.g. Dia)
 
