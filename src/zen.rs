@@ -18,7 +18,13 @@ fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
 }
 
 pub fn zen_folder() -> Option<PathBuf> {
-    let path = roaming_data_base()?.join("zen");
+    let base = roaming_data_base()?;
+    let path = if cfg!(any(target_os = "macos", target_os = "windows")) {
+        base.join("zen")
+    } else {
+        base.join(".zen")
+    };
+    
     if path.exists() { Some(path) } else { None }
 }
 

@@ -1,4 +1,4 @@
-BINARY_NAME := browser-debloat
+BINARY_NAME := clenzy
 DIST_DIR := dist
 
 AARCH64_APPLE_DARWIN := aarch64-apple-darwin

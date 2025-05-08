@@ -16,6 +16,7 @@ use tracing::{info, info_span, level_filters::LevelFilter, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[derive(Parser, Default)]
+#[command(version)]
 pub struct Args {
     /// Print extra debug information
     #[clap(short, long, default_value_t = false)]
@@ -149,6 +150,6 @@ fn no_browsers_msg(browsers: &[Browser]) {
     }
 
     info!(
-        "If you have any of these installed, please open an issue at https://github.com/Coops0/browser-debloat/issues"
+        "If you have any of these installed, please open an issue at https://github.com/Coops0/clenzy/issues"
     );
 }

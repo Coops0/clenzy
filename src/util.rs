@@ -77,7 +77,7 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     };
 
     // If no files or only times.json (on Firefox)
-    if children < 2 {
+    if children <= 3 {
         return false;
     }
 
