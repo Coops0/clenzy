@@ -10,15 +10,15 @@
 </p>
 
 <p float="left">
-  <img src="https://github.com/user-attachments/assets/204e584a-ffda-47b3-b09c-bc1d0fec032e" width="49%" alt="Brave Before" />
-  <img src="https://github.com/user-attachments/assets/747df441-5558-4b3b-8aad-58aeb83f9d80" width="49%" alt="Brave After" />
+  <img src="https://github.com/user-attachments/assets/fd87a354-8bf8-4784-a532-4276e640c7d1" width="49%" alt="Brave Before" />
+  <img src="https://github.com/user-attachments/assets/89f070aa-ca45-4ee5-8f4e-a8f6c0ceec39" width="49%" alt="Brave After" />
 </p>
 
 </div>
 
 <div align="center">
 
-![Demo Gif](https://github.com/user-attachments/assets/6b7da581-e28f-4014-b6ba-a5713135d744)
+![Demo Gif](https://github.com/user-attachments/assets/52761552-c9da-4814-bbe2-a8ed41aca17f)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)

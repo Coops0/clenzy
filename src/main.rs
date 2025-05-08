@@ -72,11 +72,13 @@ fn main() -> color_eyre::Result<()> {
     // Fetches Firefox and Zen user.js scripts immediately
     check_and_fetch_resources(&browsers);
 
+    let browsers_len = browsers.len();
     let browsers = if args.auto_confirm {
         browsers
     } else {
         MultiSelect::new("Select browsers to debloat", browsers)
             .with_all_selected_by_default()
+            .with_page_size(browsers_len)
             .prompt_skippable()
             .ok()
             .flatten()

@@ -63,21 +63,19 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
         Err(why) => warn!(err = ?why, "Failed to update local state")
     }
 
+    match chrome_feature_state(&path) {
+        Ok(()) => debug!("Updated ChromeFeatureState"),
+        Err(why) => warn!(err = ?why, "Failed to update ChromeFeatureState")
+    }
+
     for profile in profiles {
         let span = info_span!("Debloating profile", profile = %profile.name);
         let _enter = span.enter();
 
-        if let Err(why) = preferences(&profile.path) {
-            warn!(err = ?why, "Failed to debloat preferences");
-            continue;
+        match preferences(&profile.path) {
+            Ok(()) => debug!("Finished debloating profile"),
+            Err(why) => warn!(err = ?why, "Failed to debloat preferences")
         }
-
-        if let Err(why) = chrome_feature_state(&profile.path) {
-            warn!(err = ?why, "Failed to debloat chrome feature state");
-            continue;
-        }
-
-        debug!("Finished debloating profile");
     }
 
     Ok(())
@@ -414,16 +412,20 @@ static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
 #[instrument]
 fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
-    if ARGS.get().unwrap().backup {
+    if !path.exists() {
+        info!(path = %path.display(), "ChromeFeatureState does not exist, creating it");
+    }
+
+    if ARGS.get().unwrap().backup && path.exists() {
         let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
-        // This is less important to have a backup of, so just warn but continue
+        // This is less important to have a backup of, so warn but continue
         match fs::copy(&path, &backup) {
             Ok(_) => {
                 info!("Backed up Brave feature state file");
                 debug!("backup dir: {}", backup.display());
             }
             Err(why) => {
-                warn!(err = ?why, "Failed to backup Brave feature state file, continuing anyway");
+                warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway");
             }
         }
     }
@@ -450,6 +452,14 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     }
 
     debug!("disabled additional {} features", disable_features.len() - before);
+
+    // In case we are creating the file, we need to supplement with the other properties
+    let _ = prefs.entry("enable-features").or_insert_with(|| Value::Array(Vec::new()));
+    let _ = prefs.entry("force-fieldtrial-params").or_insert_with(|| Value::String(String::new()));
+    let _ = prefs
+        .entry("force-fieldtrial")
+        // ? this is the default in mine
+        .or_insert_with(|| Value::String(s!("*SeedFileTrial/Control_V7")));
 
     let prefs_str = serde_json::to_string(&prefs)?;
     fs::write(&path, prefs_str)
