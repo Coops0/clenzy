@@ -36,7 +36,9 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
         path = path.join("User Data")
     }
 
-    let profiles = match try_to_get_profiles(&path) {
+    let local_state = get_local_state(&path)?;
+
+    let profiles = match try_to_get_profiles(&local_state, &path) {
         Ok(profiles) => {
             debug!(len = %profiles.len(), "Found profiles");
             profiles
@@ -46,6 +48,11 @@ pub fn debloat(mut path: PathBuf) -> color_eyre::Result<()> {
             vec![Profile { name: String::from("Default"), path: path.join("Default") }]
         }
     };
+
+    match update_local_state(local_state, &path) {
+        Ok(_) => debug!("Updated local state to disable default browser confirmation spam"),
+        Err(why) => warn!(err = ?why, "Failed to update local state")
+    }
 
     for profile in profiles {
         let span = info_span!("Debloating profile", profile = %profile.name);
@@ -78,16 +85,23 @@ impl Display for Profile {
     }
 }
 
-#[instrument(skip_all)]
-fn try_to_get_profiles(root: &Path) -> color_eyre::Result<Vec<Profile>> {
+#[instrument]
+fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     let local_state_path = root.join("Local State");
+    let local_state_str =
+        fs::read_to_string(&local_state_path).wrap_err("Failed to read Local State")?;
+
     let Value::Object(local_state) =
-        serde_json::from_str::<Value>(&fs::read_to_string(local_state_path)?)
-            .wrap_err("Failed to read Local State")?
+        serde_json::from_str::<Value>(&local_state_str).wrap_err("Failed to read Local State")?
     else {
-        bail!("Failed to parse Local State as JSON");
+        bail!("Failed to cast Local State to object");
     };
 
+    Ok(local_state)
+}
+
+#[instrument(skip_all)]
+fn try_to_get_profiles(local_state: &Map<String, Value>, root: &Path) -> color_eyre::Result<Vec<Profile>> {
     let profile = local_state
         .get("profile")
         .and_then(Value::as_object)
@@ -162,6 +176,19 @@ macro_rules! s {
     ($s:expr) => {
         String::from($s)
     };
+}
+
+#[instrument(skip(local_state))]
+fn update_local_state(mut local_state: Map<String, Value>, root: &Path) -> color_eyre::Result<()> {
+    let browser = local_state
+        .get_mut("browser")
+        .and_then(Value::as_object_mut)
+        .context("Failed to get browser object")?;
+
+    browser.insert(s!("default_browser_infobar_declined_count"), json!(9999));
+
+    fs::write(root.join("Local State"), serde_json::to_string(&local_state)?)
+        .wrap_err("Failed to write Local State")
 }
 
 #[instrument(skip_all)]

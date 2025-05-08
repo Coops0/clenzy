@@ -77,7 +77,7 @@ fn xulstore(root: &Path) -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    let xulstore_str = fs::read_to_string(&root);
+    let xulstore_str = fs::read_to_string(&path);
     let Value::Object(mut xulstore) = serde_json::from_str::<Value>(&xulstore_str?)? else {
         bail!("Failed to parse xulstore as JSON");
     };
@@ -96,6 +96,6 @@ fn xulstore(root: &Path) -> color_eyre::Result<()> {
         debug!("collapsed tabs toolbar");
     }
 
-    fs::write(&path, serde_json::to_string_pretty(&xulstore)?)
+    fs::write(&path, serde_json::to_string(&xulstore)?)
         .map_err(color_eyre::eyre::Error::from)
 }

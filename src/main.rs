@@ -25,7 +25,7 @@ pub struct Args {
     #[clap(long = "auto-confirm", short = 'Y', default_value_t = false)]
     pub auto_confirm: bool,
 
-    /// Disable enabling vertical tabs
+    /// Disable setting browsers to use vertical tabs
     #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
     pub vertical_tabs: bool
 }
