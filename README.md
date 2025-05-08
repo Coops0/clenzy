@@ -9,6 +9,22 @@
 
 </div>
 
+## 📊 Before & After
+
+<div align="center">
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/f725b808-16f6-46a8-a142-fda8524573eb" width="49%" alt="Firefox Before" />
+  <img src="https://github.com/user-attachments/assets/e2c34fda-d702-468e-8e09-d7330db5a756" width="49%" alt="Firefox After" />
+</p>
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/204e584a-ffda-47b3-b09c-bc1d0fec032e" width="49%" alt="Brave Before" />
+  <img src="https://github.com/user-attachments/assets/747df441-5558-4b3b-8aad-58aeb83f9d80" width="49%" alt="Brave After" />
+</p>
+
+</div>
+
 ## 🚀 Overview
 
 Quickly disable AI, tracking, crypto, and other garbage features from some browsers.
@@ -32,22 +48,6 @@ Quickly disable AI, tracking, crypto, and other garbage features from some brows
 - **Vertical Tabs** - Enabled by default (disable with `--no-vertical-tabs` flag)
 - **Automatic** - Use auto confirmation flag (`-Y`) for script automation
 - **Betterfox.js** - For Firefox & Zen: Fetches & installs the latest Betterfox.js with extra tweaks
-
-## 📊 Before & After
-
-<div align="center">
-
-<p float="left">
-  <img src="https://github.com/user-attachments/assets/f725b808-16f6-46a8-a142-fda8524573eb" width="49%" alt="Firefox Before" />
-  <img src="https://github.com/user-attachments/assets/e2c34fda-d702-468e-8e09-d7330db5a756" width="49%" alt="Firefox After" />
-</p>
-
-<p float="left">
-  <img src="https://github.com/user-attachments/assets/204e584a-ffda-47b3-b09c-bc1d0fec032e" width="49%" alt="Brave Before" />
-  <img src="https://github.com/user-attachments/assets/747df441-5558-4b3b-8aad-58aeb83f9d80" width="49%" alt="Brave After" />
-</p>
-
-</div>
 
 ## 🤔 Why?
 
