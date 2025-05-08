@@ -1,6 +1,6 @@
 use crate::{
     util::{
-        get_or_insert_obj, local_data_base, select_profiles, snap_base, timestamp, validate_profile_dir
+        flatpak_base, get_or_insert_obj, local_data_base, select_profiles, snap_base, timestamp, validate_profile_dir
     }, ARGS
 };
 use color_eyre::eyre::{bail, Context, ContextCompat};
@@ -25,6 +25,15 @@ pub fn brave_snap_folder() -> Option<PathBuf> {
         .join("brave")
         .join("509")
         .join(".config")
+        .join("BraveSoftware")
+        .join("Brave-Browser");
+    path.exists().then_some(path)
+}
+
+pub fn brave_flatpak_folder() -> Option<PathBuf> {
+    let path = flatpak_base()?
+        .join("com.brave.Browser")
+        .join("config")
         .join("BraveSoftware")
         .join("Brave-Browser");
     path.exists().then_some(path)

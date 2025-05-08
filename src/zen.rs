@@ -4,6 +4,7 @@ use crate::{
 use color_eyre::eyre::ContextCompat;
 use std::{path::PathBuf, sync::Mutex};
 use tracing::instrument;
+use crate::util::flatpak_base;
 
 static BETTER_ZEN_USER_JS: Mutex<&'static str> = Mutex::new("");
 pub fn get_better_zen_user_js() -> color_eyre::Result<&'static str> {
@@ -33,6 +34,11 @@ pub fn zen_folder() -> Option<PathBuf> {
 pub fn zen_snap_folder() -> Option<PathBuf> {
     // This is unofficial
     let path = snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen");
+    path.exists().then_some(path)
+}
+
+pub fn zen_flatpak_folder() -> Option<PathBuf> {
+    let path = flatpak_base()?.join("app.zen_browser").join(".zen");
     path.exists().then_some(path)
 }
 

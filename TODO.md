@@ -1,6 +1,5 @@
 # Todo
 
-- flat pak?
 - other browsers?
 - redo demo:
     - redo the gif to show fixed logging

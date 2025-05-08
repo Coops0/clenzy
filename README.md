@@ -34,7 +34,7 @@ Quickly disable AI, tracking, crypto, and other garbage features from some brows
 ### Operating Systems
 - Windows
 - macOS
-- Linux (snap and local installations)
+- Linux (snap, flatpak, and local installations)
 
 ### Browsers
 - Brave (stable and nightly)

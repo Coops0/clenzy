@@ -59,13 +59,14 @@ fn add_dir_to_archive(
     skip: &[&str]
 ) -> color_eyre::Result<()> {
     zip.add_directory(path.display().to_string(), *options)?;
-    let entries = fs::read_dir(abs_path)?;
 
+    let entries = fs::read_dir(abs_path)?;
     for entry in entries {
         if let Err(why) = add_to_archive(zip, entry, prefix, options, skip) {
             warn!(err = ?why, "Failed to add entry to archive (nested)");
         }
     }
+
     Ok(())
 }
 
@@ -78,12 +79,12 @@ fn add_file_to_archive(
 ) -> color_eyre::Result<()> {
     zip.start_file(path.display(), *options)?;
 
-    let mut reader = BufReader::with_capacity(8192, File::open(abs_path).wrap_err("Failed to open file")?);
+    let mut reader =
+        BufReader::with_capacity(8192, File::open(abs_path).wrap_err("Failed to open file")?);
     let mut buffer = [0u8; 8192];
 
     loop {
-        let b = reader.read(&mut buffer);
-        if matches!(b, Ok(0) | Err(_)) {
+        if reader.read(&mut buffer)? == 0 {
             break;
         }
 

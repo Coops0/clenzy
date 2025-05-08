@@ -7,6 +7,7 @@ use std::{
     fs, path::{Path, PathBuf}, sync::Mutex
 };
 use tracing::{debug, info_span, instrument, warn};
+use crate::util::flatpak_base;
 
 static BETTER_FOX_USER_JS: Mutex<&'static str> = Mutex::new("");
 pub fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
@@ -39,6 +40,11 @@ pub fn firefox_folder() -> Option<PathBuf> {
 
 pub fn firefox_snap_folder() -> Option<PathBuf> {
     let path = snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox");
+    path.exists().then_some(path)
+}
+
+pub fn firefox_flatpak_folder() -> Option<PathBuf> {
+    let path = flatpak_base()?.join("org.mozilla.firefox").join(".mozilla").join("firefox");
     path.exists().then_some(path)
 }
 

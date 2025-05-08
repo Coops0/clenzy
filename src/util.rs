@@ -53,6 +53,16 @@ pub fn snap_base() -> Option<PathBuf> {
     }
 }
 
+#[allow(clippy::if_then_some_else_none)]
+pub fn flatpak_base() -> Option<PathBuf> {
+    if cfg!(target_os = "linux") {
+        // Is this the only location?
+        Some(dirs::home_dir()?.join(".var").join("app"))
+    } else {
+        None
+    }
+}
+
 // 202501192003
 pub fn timestamp() -> String {
     chrono::Local::now().format("%Y%m%d%H%M").to_string()

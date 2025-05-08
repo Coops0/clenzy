@@ -45,14 +45,17 @@ fn main() -> color_eyre::Result<()> {
 
     setup_logging(args)?;
 
-    let browsers: [BrowserTuple; 7] = [
+    let browsers: [BrowserTuple; 10] = [
         ("Brave", brave::brave_folder(), brave::debloat),
         ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
         ("Brave (Snap)", brave::brave_snap_folder(), brave::debloat),
+        ("Brave (Flatpak", brave::brave_flatpak_folder(), brave::debloat),
         ("Firefox", firefox::firefox_folder(), firefox::debloat),
         ("Firefox (Snap)", firefox::firefox_snap_folder(), firefox::debloat),
+        ("Firefox (Flatpak)", firefox::firefox_flatpak_folder(), firefox::debloat),
         ("Zen", zen::zen_folder(), zen::debloat),
-        ("Zen (Unofficial Snap)", zen::zen_snap_folder(), zen::debloat)
+        ("Zen (Unofficial Snap)", zen::zen_snap_folder(), zen::debloat),
+        ("Zen (Flatpak)", zen::zen_flatpak_folder(), zen::debloat)
     ];
 
     let browsers = browsers
