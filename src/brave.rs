@@ -9,6 +9,7 @@ use std::{
     fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
 use tracing::{debug, info, info_span, instrument, trace, warn};
+use crate::logging::{success};
 
 pub fn brave_folder() -> Option<PathBuf> {
     let path = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
@@ -197,7 +198,7 @@ fn preferences(root: &Path) -> color_eyre::Result<()> {
         let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
         fs::copy(&path, &backup)?;
-        info!("Backed up Brave preferences file");
+        success("Backed up Brave preferences file");
         debug!("backup file path: {}", backup.display());
     }
 
@@ -413,7 +414,7 @@ static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
 fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     if !path.exists() {
-        info!(path = %path.display(), "ChromeFeatureState does not exist, creating it");
+        debug!(path = %path.display(), "ChromeFeatureState does not exist, creating it");
     }
 
     if ARGS.get().unwrap().backup && path.exists() {
@@ -421,11 +422,11 @@ fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         // This is less important to have a backup of, so warn but continue
         match fs::copy(&path, &backup) {
             Ok(_) => {
-                info!("Backed up Brave feature state file");
+                success("Backed up Brave feature state file");
                 debug!("backup dir: {}", backup.display());
             }
             Err(why) => {
-                warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway");
+                warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway: ({why})");
             }
         }
     }

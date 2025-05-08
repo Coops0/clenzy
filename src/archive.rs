@@ -2,7 +2,7 @@ use color_eyre::eyre::{bail, Context};
 use std::{
     fs, fs::{DirEntry, File}, io, io::{BufReader, Read, Write}, path::Path
 };
-use tracing::{debug, instrument, warn};
+use tracing::{debug, instrument, trace, warn};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 #[instrument(skip_all)]
@@ -38,12 +38,12 @@ pub fn add_to_archive(
     } else if file_type.is_file() {
         add_file_to_archive(zip, &abs_path, path, options)
     } else {
-        debug!(path = %path.display(), file_type = ?file_type, "Skipping entry of bad type");
+        trace!(path = %path.display(), file_type = ?file_type, "Skipping entry of bad type");
         return Ok(());
     };
 
     if let Err(why) = r {
-        warn!(err = ?why, path = %path.display(), "Failed to add entry to archive");
+        debug!(err = ?why, path = %path.display(), "Failed to add entry to archive");
     }
 
     Ok(())
@@ -63,7 +63,7 @@ fn add_dir_to_archive(
     let entries = fs::read_dir(abs_path)?;
     for entry in entries {
         if let Err(why) = add_to_archive(zip, entry, prefix, options, skip) {
-            warn!(err = ?why, "Failed to add entry to archive (nested)");
+            debug!(err = ?why, "Failed to add entry to archive (nested)");
         }
     }
 

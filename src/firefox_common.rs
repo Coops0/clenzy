@@ -1,5 +1,5 @@
 use crate::{
-    archive::add_to_archive, util::{select_profiles, timestamp, validate_profile_dir}, ARGS
+    archive::add_to_archive, logging::success, util::{select_profiles, timestamp, validate_profile_dir}, ARGS
 };
 use ahash::AHasher;
 use color_eyre::eyre::{Context, ContextCompat};
@@ -8,7 +8,7 @@ use ini::Ini;
 use std::{
     fmt::Display, fs, hash::Hasher, io::{BufReader, Read}, path::{Path, PathBuf}, sync::LazyLock
 };
-use tracing::{debug, info, info_span, instrument, warn};
+use tracing::{debug, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 #[instrument(skip(fetch_user_js, additional_snippets))]
@@ -67,13 +67,13 @@ where
 
         if ARGS.get().unwrap().backup {
             if let Err(why) = backup_profile(profile) {
-                warn!(err = ?why, "Failed to backup profile");
+                warn!(err = ?why, "Failed to backup profile {profile}: {why}");
                 continue;
             }
         }
 
         if let Err(why) = install_user_js(profile, &fetch_user_js, additional_snippets) {
-            warn!(err = ?why, "Failed to install user.js");
+            warn!(err = ?why, "Failed to install user.js for profile {profile}: {why}");
             continue;
         }
 
@@ -122,7 +122,7 @@ fn backup_profile(profile: &FirefoxProfile) -> color_eyre::Result<()> {
     }
 
     debug!("finished creating backup zip file");
-    info!("Backup created for user profile");
+    success(&format!("Backup created for user profile {profile}"));
     zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
 }
 

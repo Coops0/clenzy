@@ -7,6 +7,7 @@ use std::{
     fs, path::{Path, PathBuf}, sync::Mutex
 };
 use tracing::{debug, info_span, instrument, warn};
+use crate::logging::{success};
 use crate::util::flatpak_base;
 
 static BETTER_FOX_USER_JS: Mutex<&'static str> = Mutex::new("");
@@ -71,7 +72,7 @@ pub fn debloat(path: PathBuf) -> color_eyre::Result<()> {
         let _enter = span.enter();
 
         match xulstore(&profile.path) {
-            Ok(()) => debug!("done updating"),
+            Ok(()) => success(&format!("Updated xulstore.json for {profile}")),
             Err(why) => warn!(err = %why, "Failed to update")
         }
     }

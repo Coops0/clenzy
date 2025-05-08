@@ -1,8 +1,11 @@
 # Todo
 
-- other browsers?
 - detect if ublock origin isn't installed
-- stop showing paths for no verbose?
+- don't think hash checking is working
+
+### Other Browsers
+
+- ...
 
 ### Unlikely
 

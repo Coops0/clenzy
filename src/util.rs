@@ -1,4 +1,6 @@
-use crate::{firefox, zen, Browser, ARGS};
+use crate::{
+    firefox, zen, Browser, ARGS
+};
 use color_eyre::eyre::Context;
 use serde_json::{Map, Value};
 use std::{
@@ -80,14 +82,14 @@ pub fn fetch_text(name: &str, url: &str) -> color_eyre::Result<String> {
 
 pub fn validate_profile_dir(profile: &Path) -> bool {
     if !profile.exists() {
-        warn!(path = %profile.display(), "Profile does not exist");
+        debug!(path = %profile.display(), "Profile does not exist");
         return false;
     }
 
     let children = match fs::read_dir(profile) {
         Ok(c) => c.count(),
         Err(why) => {
-            warn!(path = %profile.display(), err = %why, "Failed to read profile directory");
+            debug!(path = %profile.display(), err = %why, "Failed to read profile directory");
             return false;
         }
     };
@@ -145,7 +147,7 @@ pub fn check_if_running(system: &mut System, name: &str) {
         return;
     }
 
-    warn!(processes, "Please close all instances before debloating");
+    warn!("Please close all instances before debloating ({processes})");
     info!("Press any key to continue");
     let _ = stdin().read_exact(&mut [0_u8]);
 
@@ -153,7 +155,8 @@ pub fn check_if_running(system: &mut System, name: &str) {
     if processes.is_empty() {
         return;
     }
-    warn!(processes, "Process still running");
+
+    warn!("Some processes are still running ({processes})");
 
     // We don't need to check for auto confirm since it's checked at the start of the function
     let should_continue =

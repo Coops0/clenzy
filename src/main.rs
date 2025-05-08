@@ -2,16 +2,18 @@ mod archive;
 mod brave;
 mod firefox;
 mod firefox_common;
+mod logging;
 mod util;
 mod zen;
 
-use crate::util::{check_and_fetch_resources, check_if_running};
+use crate::{
+    logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
+};
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
 use std::{env, fmt::Display, path::PathBuf, sync::OnceLock};
 use sysinfo::System;
-use tracing::{info, info_span, level_filters::LevelFilter, warn};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing::{info, info_span, warn};
 
 #[derive(Parser, Default)]
 #[command(version)]
@@ -98,46 +100,12 @@ fn main() -> color_eyre::Result<()> {
         check_if_running(&mut system, browser.name);
 
         match (browser.debloat)(browser.folder) {
-            Ok(()) => info!("Finished debloating browser"),
-            Err(why) => warn!(err = ?why, "Failed to debloat {}", browser.name)
+            Ok(()) => success("Finished debloating browser"),
+            Err(why) => warn!(err = %why, "Failed to debloat {}: {why}", browser.name)
         }
     }
 
-    info!("Done");
-    Ok(())
-}
-
-fn setup_logging(args: &Args) -> color_eyre::Result<()> {
-    let filter =
-        EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env()?;
-    let fmt_layer = tracing_subscriber::fmt::layer().without_time();
-
-    let mut verbosity = args.verbose;
-    if cfg!(debug_assertions) {
-        verbosity = verbosity.max(2);
-    }
-
-    if verbosity > 3 {
-        warn!("Verbosity level {verbosity} is too high, defaulting to max of 3");
-    }
-
-    let filter = match verbosity {
-        0 => {
-            let fmt_layer = fmt_layer
-                .compact()
-                .with_target(false)
-                .with_level(true)
-                .with_file(false)
-                .with_line_number(false);
-            tracing_subscriber::registry().with(filter).with(fmt_layer).init();
-            return Ok(());
-        }
-        1 => filter.add_directive("browser_debloat=debug".parse()?),
-        2 => filter.add_directive("browser_debloat=trace".parse()?),
-        _ => EnvFilter::builder().with_default_directive(LevelFilter::TRACE.into()).from_env()?
-    };
-
-    tracing_subscriber::registry().with(filter).with(fmt_layer).init();
+    success("Done");
     Ok(())
 }
 
