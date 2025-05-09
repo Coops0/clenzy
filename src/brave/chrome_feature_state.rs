@@ -1,8 +1,6 @@
-use crate::{
-    brave::{
-        resources, resources::{DISABLED_FEATURES, REMOVE_ENABLED_FEATURES}
-    }, logging::success, util::timestamp, ARGS
-};
+use crate::{brave::{
+    resources, resources::{DISABLED_FEATURES, REMOVE_ENABLED_FEATURES}
+}, logging::success, s, util::timestamp, ARGS};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use resources::replace_symbols;
 use serde_json::{json, Map, Value};
@@ -55,7 +53,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     }
 
     debug!("disabled additional {} features", disable_features.len() - before);
-    prefs.insert(String::from("disable-features"), json!(disable_features.join(",")));
+    prefs.insert(s!("disable-features"), json!(disable_features.join(",")));
 
     let mut enabled_features = prefs
         .get("enable-features")
@@ -76,12 +74,12 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     });
 
     debug!("removed {} enabled features", before - enabled_features.len());
-    prefs.insert(String::from("enable-features"), json!(&enabled_features.join(",")));
+    prefs.insert(s!("enable-features"), json!(&enabled_features.join(",")));
 
     // Just get rid of all of these, most are telemetry or ads.
     // These are IMMEDIATELY restored anyway
-    prefs.insert(String::from("force-fieldtrial-params"), json!(""));
-    prefs.insert(String::from("force-fieldtrials"), json!(""));
+    prefs.insert(s!("force-fieldtrial-params"), json!(""));
+    prefs.insert(s!("force-fieldtrials"), json!(""));
 
     let prefs_str = serde_json::to_string(&prefs)?;
     fs::write(&path, prefs_str)

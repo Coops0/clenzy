@@ -22,6 +22,7 @@ pub static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
     lines
 });
+
 pub static REMOVE_ENABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
     let mut lines = include_str!("../../snippets/remove_enabled_features")
         .lines()
@@ -37,4 +38,11 @@ pub static REMOVE_ENABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
     }
 
     lines
+});
+
+pub static REMOVE_ENABLED_LAB_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
+    include_str!("../../snippets/remove_enabled_lab_experiments_brave")
+        .lines()
+        .filter(|line| !line.is_empty())
+        .collect()
 });

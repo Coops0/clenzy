@@ -28,7 +28,7 @@ pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     };
 
     match local_state::update_local_state(local_state, &path) {
-        Ok(()) => debug!("Updated local state to disable default browser confirmation spam"),
+        Ok(()) => debug!("Updated local state"),
         Err(why) => warn!(err = ?why, "Failed to update local state")
     }
 

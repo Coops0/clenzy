@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::{fs, path::Path};
 use tracing::{debug, instrument, trace};
 
+#[macro_export]
 macro_rules! s {
     ($s:expr) => {
         String::from($s)
@@ -51,7 +52,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
 
     brave.insert(s!("always_show_bookmark_bar_on_ntp"), json!(true));
     trace!("enabled bookmark bar (on new tab page)");
-    
+
     brave.insert(s!("autocomplete_enabled"), json!(ARGS.get().unwrap().search_suggestions));
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
@@ -90,7 +91,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
         new_tab_page.insert(s!("show_rewards"), json!(false));
         new_tab_page.insert(s!("show_stats"), json!(false));
         new_tab_page.insert(s!("show_together"), json!(false));
-        new_tab_page.insert(s!("shows_options"), json!(1));
+        new_tab_page.insert(s!("shows_options"), json!(0));
         trace!("hid new tab page widgets");
     }
 
@@ -98,8 +99,9 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     trace!("enabled other search engines");
 
     if let Some(rewards) = get_or_insert_obj(brave, "rewards") {
+        rewards.insert(s!("notifications"), json!("{\"displayed\":[],\"notifications\":[]}"));
         rewards.insert(s!("show_brave_rewards_button_in_location_bar"), json!(false));
-        trace!("hid brave rewards button");
+        trace!("hid brave rewards button and dismissed any notifications");
     }
 
     if let Some(shields) = get_or_insert_obj(brave, "shields") {
@@ -141,9 +143,11 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     if let Some(wallet) = get_or_insert_obj(brave, "wallet") {
+        wallet.insert(s!("default_solana_wallet"), json!(0));
+        wallet.insert(s!("default_wallet2"), json!(0));
         wallet.insert(s!("show_wallet_icon_on_toolbar"), json!(false));
         wallet.insert(s!("should_show_wallet_suggestion_badge"), json!(false));
-        trace!("hid wallet button");
+        trace!("hid wallet button and disabled default wallets");
     }
 
     brave.insert(s!("tabs_search_show"), json!(false));
@@ -182,10 +186,10 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
             }
         }
 
-        if let Some(snoozed_feature) = get_or_insert_obj(in_product_help, "snoozed_feature") {
-            if let Some(iph_discard_ring) = get_or_insert_obj(snoozed_feature, "IPH_DiscardRing") {
-                iph_discard_ring.insert(s!("is_dismissed"), json!(true));
-            }
+        if let Some(snoozed_feature) = get_or_insert_obj(in_product_help, "snoozed_feature")
+            && let Some(iph_discard_ring) = get_or_insert_obj(snoozed_feature, "IPH_DiscardRing")
+        {
+            iph_discard_ring.insert(s!("is_dismissed"), json!(true));
         }
 
         trace!("dismissed some in product help features");
