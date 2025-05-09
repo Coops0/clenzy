@@ -1,12 +1,11 @@
 use crate::{
     archive::add_to_archive, logging::success, util::{select_profiles, timestamp, validate_profile_dir}, ARGS
 };
-use ahash::AHasher;
 use color_eyre::eyre::{Context, ContextCompat};
 use fs::File;
 use ini::Ini;
 use std::{
-    fmt::Display, fs, hash::Hasher, io::{BufReader, Read}, path::{Path, PathBuf}, sync::LazyLock
+    fmt::Display, fs, path::{Path, PathBuf}, sync::LazyLock
 };
 use tracing::{debug, info_span, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
@@ -52,11 +51,11 @@ where
     debug!("found {} valid profiles", profiles.len());
 
     if profiles.is_empty() {
-        warn!("No FireFox profiles found in profiles.ini");
+        warn!("No Firefox profiles found in profiles.ini");
         return Ok(Vec::new());
     }
 
-    let profiles = select_profiles(profiles, &(0..defaults).collect::<Vec<_>>());
+    let profiles = select_profiles(profiles, &(0..defaults).collect::<Vec<_>>(), "Firefox/Zen"); // FIXME
     if profiles.is_empty() {
         return Ok(Vec::new());
     }
@@ -146,7 +145,7 @@ where
             .context("Failed to find start of 'my overrides'")?;
 
         // Skip comments and a blank space
-        let start_my_overrides_pos = start_my_overrides_pos + 4;
+        let start_my_overrides_pos = start_my_overrides_pos + 6;
 
         if !additional_snippets.is_empty() {
             lines.insert(start_my_overrides_pos, additional_snippets);
@@ -160,9 +159,8 @@ where
         Ok::<String, color_eyre::eyre::Error>(lines.join::<&str>("\n"))
     }?;
 
-    // Checks if user.js exists and content differs from configured_user_js.
-    // Assumes any error means the file doesn't exist.
-    if check_user_js_exists(profile, &user_js_path, &configured_user_js).unwrap_or_default() {
+    // Checks if user.js exists and content differs from configured_user_js
+    if !should_overwrite_user_js(profile, &user_js_path, &configured_user_js) {
         debug!(path = %user_js_path.display(), "not overwriting user.js");
         return Ok(());
     }
@@ -170,51 +168,28 @@ where
     fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }
 
-// returns Ok(true) if exists
-fn check_user_js_exists(
-    profile: &FirefoxProfile,
-    path: &Path,
-    user_js_str: &str
-) -> color_eyre::Result<bool> {
+fn should_overwrite_user_js(profile: &FirefoxProfile, path: &Path, user_js_str: &str) -> bool {
     if !path.exists() || ARGS.get().unwrap().auto_confirm {
-        return Ok(false);
+        return true;
     }
 
-    // Read hash of existing user.js
-    let fs_hash = {
-        let mut fs_hasher = AHasher::default();
-        let mut reader = BufReader::with_capacity(8192, File::open(path)?);
-        let mut buffer = [0u8; 8192];
+    let existing_fs_user_js = fs::read_to_string(path).unwrap_or_default();
 
-        loop {
-            let b = reader.read(&mut buffer)?;
-            if b == 0 {
-                break;
-            }
-
-            fs_hasher.write(&buffer[b..]);
-        }
-
-        fs_hasher.finish()
-    };
-
-    // Hash of the generated user.js string
-    let user_js_hash = {
-        let mut user_js_hasher = AHasher::default();
-        user_js_hasher.write(user_js_str.as_bytes());
-        user_js_hasher.finish()
-    };
-
-    if fs_hash == user_js_hash {
+    if existing_fs_user_js == user_js_str {
         debug!(path = %path.display(), "user.js already exists and is the same");
-        return Ok(false);
+        return false;
     }
 
-    Ok(inquire::Confirm::new(&format!(
+    if existing_fs_user_js.is_empty() {
+        debug!(path = %path.display(), "user.js already exists but is empty");
+        return true;
+    }
+
+    inquire::Confirm::new(&format!(
         "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
     ))
     .prompt()
-    .expect("User killed program"))
+    .expect("User killed program")
 }
 
 #[derive(Debug)]

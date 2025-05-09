@@ -1,4 +1,4 @@
-use color_eyre::eyre::{bail, Context};
+use color_eyre::eyre::{bail, Context, ContextCompat};
 use std::{
     fs, fs::{DirEntry, File}, io, io::{BufReader, Read, Write}, path::Path
 };
@@ -89,7 +89,10 @@ fn add_file_to_archive(
             break;
         }
 
-        zip.write_all(&buffer[b..])?;
+        let bytes = buffer
+            .get(..b)
+            .with_context(|| format!("failed to index into byte {b} when zipping"))?;
+        zip.write_all(bytes)?;
     }
 
     zip.flush()?;

@@ -161,7 +161,7 @@ fn try_to_get_profiles(
         }
     );
 
-    let profiles = select_profiles(profiles, &selected);
+    let profiles = select_profiles(profiles, &selected, "Brave");
     if profiles.is_empty() {
         // If they explicitly select no profiles, then don't fallback to default
         return Ok(Vec::new());

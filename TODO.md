@@ -1,7 +1,7 @@
 # Todo
 
 - detect if ublock origin isn't installed
-- **don't think hash checking is working** 
+- dedupe profiles by path
 
 ### Other Browsers
 

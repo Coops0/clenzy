@@ -81,10 +81,7 @@ fn main() -> color_eyre::Result<()> {
         MultiSelect::new("Select browsers to debloat", browsers)
             .with_all_selected_by_default()
             .with_page_size(browsers_len)
-            .prompt_skippable()
-            .ok()
-            .flatten()
-            .unwrap_or_default()
+            .prompt()?
     };
 
     if browsers.is_empty() {

@@ -1,6 +1,4 @@
-use crate::{
-    firefox, zen, Browser, ARGS
-};
+use crate::{firefox, zen, Browser, ARGS};
 use color_eyre::eyre::Context;
 use serde_json::{Map, Value};
 use std::{
@@ -87,12 +85,18 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     }
 
     let children = match fs::read_dir(profile) {
-        Ok(c) => c.count(),
+        Ok(c) => c,
         Err(why) => {
             debug!(path = %profile.display(), err = %why, "Failed to read profile directory");
             return false;
         }
     };
+
+    let children = children
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|c| c.file_type().map(|f| f.is_file() || f.is_dir()).unwrap_or(false))
+        .count();
 
     // If no files or only times.json (on Firefox)
     if children <= 3 {
@@ -102,13 +106,13 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     true
 }
 
-pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize]) -> Vec<P> {
+pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize], name: &str) -> Vec<P> {
     if ARGS.get().unwrap().auto_confirm {
         profiles
     } else if profiles.len() == 1 {
         vec![profiles.remove(0)]
     } else {
-        inquire::MultiSelect::new("Which profiles to debloat?", profiles)
+        inquire::MultiSelect::new(&format!("Which profiles to debloat for {name}?"), profiles)
             .with_default(selected)
             .prompt()
             .unwrap_or_default()
