@@ -31,12 +31,16 @@ pub struct Args {
     pub auto_confirm: bool,
 
     /// Disable setting browsers to use vertical tabs
-    #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
+    #[clap(long = "no-vertical-tabs", short = 'V', action = ArgAction::SetFalse, default_value_t = true)]
     pub vertical_tabs: bool,
 
     /// Disable the creation of backups
     #[clap(long = "no-backup", short = 'B', action = ArgAction::SetFalse, default_value_t = true)]
-    pub backup: bool
+    pub backup: bool,
+
+    /// Enable search suggestions and prefetching. Every word in the URL bar you type will be sent to your search provider.
+    #[clap(long = "search-suggestions", short = 'S', default_value_t = false)]
+    pub search_suggestions: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();

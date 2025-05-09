@@ -9,13 +9,16 @@ use tracing::{info_span, instrument, warn};
 #[instrument]
 pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     let mut custom_overrides = vec![
-        include_str!("../../snippets/betterfox_user_config"),
-        // These should be optional eventually
-        include_str!("../../snippets/firefox_user_js_extra"),
+        include_str!("../../snippets/betterfox_extra"),
+        include_str!("../../snippets/firefox_extra"),
     ];
 
     if ARGS.get().unwrap().vertical_tabs {
-        custom_overrides.push(include_str!("../../snippets/firefox_user_js_vert_tabs"));
+        custom_overrides.push(include_str!("../../snippets/firefox_vert_tabs"));
+    }
+
+    if ARGS.get().unwrap().search_suggestions {
+        custom_overrides.push(include_str!("../../snippets/firefox_search_suggestions"));
     }
 
     let profiles = firefox_common::debloat(

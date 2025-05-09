@@ -10,8 +10,6 @@ user_pref("browser.newtabpage.activity-stream.default.sites", "");
 user_pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false); // Sponsored shortcuts
 user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false); // Recommended by Pocket
 user_pref("browser.newtabpage.activity-stream.showSponsored", false); // Sponsored Stories
-// PREF: restore search engine suggestions
-user_pref("browser.search.suggest.enabled", true);
 // PREF: disable unified search button
 user_pref("browser.urlbar.scotchBonnet.enableOverride", false);
 // PREF: disable login manager

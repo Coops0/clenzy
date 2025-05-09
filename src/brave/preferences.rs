@@ -50,9 +50,9 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     brave.insert(s!("always_show_bookmark_bar_on_ntp"), json!(true));
-    // People will want this disabled by default probably
-    brave.insert(s!("autocomplete_enabled"), json!(true));
-    trace!("enabled bookmark bar (on new tab page) and autocomplete");
+    trace!("enabled bookmark bar (on new tab page)");
+    
+    brave.insert(s!("autocomplete_enabled"), json!(ARGS.get().unwrap().search_suggestions));
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
         brave_ads.insert(s!("should_allow_ads_subdivision_targeting"), json!(false));
@@ -205,8 +205,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     if let Some(search) = get_or_insert_obj(&mut prefs, "search") {
-        search.insert(s!("suggest_enabled"), json!(true));
-        trace!("enabled search suggestions");
+        search.insert(s!("suggest_enabled"), json!(ARGS.get().unwrap().search_suggestions));
     }
 
     if let Some(privacy_sandbox) = get_or_insert_obj(&mut prefs, "privacy_sandbox") {
