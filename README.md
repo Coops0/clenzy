@@ -80,7 +80,7 @@ everytime I installed a browser to disable features and configure individual fla
 
 - Windows: Librewolf, Firefox, Brave
 - Linux: Librewolf, Firefox, Brave<!--, Orion (in the future)-->
-- macOS: Librewolf, Firefox, Orion, Safari<br>
+- macOS: Orion, Librewolf, Firefox, Safari<br>
 
 ### Search Engines
 
