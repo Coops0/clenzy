@@ -1,5 +1,6 @@
 mod archive;
 mod brave;
+mod browser_profile;
 mod firefox;
 mod firefox_common;
 mod logging;
@@ -9,9 +10,12 @@ mod zen;
 use crate::{
     logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
 };
+use brave::paths;
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{env, fmt::Display, path::PathBuf, sync::OnceLock};
+use std::{
+    env, fmt::Display, path::{Path, PathBuf}, sync::OnceLock
+};
 use sysinfo::System;
 use tracing::{info, info_span, warn};
 
@@ -48,16 +52,16 @@ fn main() -> color_eyre::Result<()> {
     setup_logging(args)?;
 
     let browsers: [BrowserTuple; 10] = [
-        ("Brave", brave::brave_folder(), brave::debloat),
-        ("Brave Nightly", brave::brave_nightly_folder(), brave::debloat),
-        ("Brave (Snap)", brave::brave_snap_folder(), brave::debloat),
-        ("Brave (Flatpak", brave::brave_flatpak_folder(), brave::debloat),
-        ("Firefox", firefox::firefox_folder(), firefox::debloat),
-        ("Firefox (Snap)", firefox::firefox_snap_folder(), firefox::debloat),
-        ("Firefox (Flatpak)", firefox::firefox_flatpak_folder(), firefox::debloat),
-        ("Zen", zen::zen_folder(), zen::debloat),
-        ("Zen (Unofficial Snap)", zen::zen_snap_folder(), zen::debloat),
-        ("Zen (Flatpak)", zen::zen_flatpak_folder(), zen::debloat)
+        ("Brave", paths::brave_folder(), brave::debloat),
+        ("Brave Nightly", paths::brave_nightly_folder(), brave::debloat),
+        ("Brave (Snap)", paths::brave_snap_folder(), brave::debloat),
+        ("Brave (Flatpak", paths::brave_flatpak_folder(), brave::debloat),
+        ("Firefox", firefox::paths::firefox_folder(), firefox::debloat),
+        ("Firefox (Snap)", firefox::paths::firefox_snap_folder(), firefox::debloat),
+        ("Firefox (Flatpak)", firefox::paths::firefox_flatpak_folder(), firefox::debloat),
+        ("Zen", zen::paths::zen_folder(), zen::debloat),
+        ("Zen (Unofficial Snap)", zen::paths::zen_snap_folder(), zen::debloat),
+        ("Zen (Flatpak)", zen::paths::zen_flatpak_folder(), zen::debloat)
     ];
 
     let browsers = browsers
@@ -96,7 +100,7 @@ fn main() -> color_eyre::Result<()> {
 
         check_if_running(&mut system, browser.name);
 
-        match (browser.debloat)(browser.folder) {
+        match (browser.debloat)(&browser.folder) {
             Ok(()) => success("Finished debloating browser"),
             Err(why) => warn!(err = %why, "Failed to debloat {}", browser.name)
         }
@@ -106,12 +110,12 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-type BrowserTuple = (&'static str, Option<PathBuf>, fn(PathBuf) -> color_eyre::Result<()>);
+type BrowserTuple = (&'static str, Option<PathBuf>, fn(&Path) -> color_eyre::Result<()>);
 
 pub struct Browser {
     pub name: &'static str,
     folder: PathBuf,
-    debloat: fn(PathBuf) -> color_eyre::Result<()>
+    debloat: fn(&Path) -> color_eyre::Result<()>
 }
 
 impl Display for Browser {

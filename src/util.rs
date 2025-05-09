@@ -173,10 +173,10 @@ pub fn check_if_running(system: &mut System, name: &str) {
 
 pub fn check_and_fetch_resources(browsers: &[Browser]) {
     if browsers.iter().any(|b| b.name.contains("Firefox")) {
-        start_fetch_resource("Betterfox User.js", firefox::get_better_fox_user_js);
+        start_fetch_resource("Betterfox User.js", firefox::resource::get_better_fox_user_js);
     }
     if browsers.iter().any(|b| b.name.contains("Zen")) {
-        start_fetch_resource("Better Zen user.js", zen::get_better_zen_user_js);
+        start_fetch_resource("Better Zen user.js", zen::resource::get_better_zen_user_js);
     }
 }
 
