@@ -18,7 +18,7 @@
 
 <div align="center">
 
-![Demo Gif](https://github.com/user-attachments/assets/a0f83293-eac0-4490-b38d-cb173f82a662)
+![Demo Gif](https://github.com/user-attachments/assets/49bd409e-d723-4a64-a86f-2eaf70003529)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
