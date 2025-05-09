@@ -1,12 +1,12 @@
 use crate::{browser_profile::BrowserProfile, util::select_profiles, ARGS};
 use std::path::Path;
-use tracing::{debug, info_span, instrument, warn};
+use tracing::{debug, debug_span, instrument, warn};
 
 mod backup;
 mod profiles;
 mod user_js;
 
-#[instrument(skip(fetch_user_js, additional_snippets))]
+#[instrument(skip(fetch_user_js, additional_snippets), level = "debug")]
 pub fn debloat<'a, F>(
     path: &Path,
     browser_name: &str,
@@ -17,7 +17,7 @@ where
     F: Fn() -> color_eyre::Result<&'a str>
 {
     let (defaults, profiles) = profiles::get_profiles(path)?;
-    debug!("found {} valid profiles", profiles.len());
+    debug!("Found {} valid profiles", profiles.len());
 
     if profiles.is_empty() {
         warn!("No {browser_name} profiles found in profiles.ini");
@@ -30,7 +30,7 @@ where
     }
 
     for profile in &profiles {
-        let span = info_span!("Debloating profile", profile = %profile);
+        let span = debug_span!("Debloating profile", profile = %profile);
         let _enter = span.enter();
 
         if ARGS.get().unwrap().backup {

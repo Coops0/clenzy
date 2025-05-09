@@ -17,7 +17,7 @@ use std::{
     env, fmt::Display, path::{Path, PathBuf}, sync::OnceLock
 };
 use sysinfo::System;
-use tracing::{info, info_span, warn};
+use tracing::{debug_span, info, warn};
 
 #[derive(Parser, Default)]
 #[command(version)]
@@ -99,7 +99,7 @@ fn main() -> color_eyre::Result<()> {
     let mut system = System::new();
 
     for browser in browsers {
-        let span = info_span!("debloat", browser = %browser.name);
+        let span = debug_span!("debloat", browser = %browser.name);
         let _enter = span.enter();
 
         check_if_running(&mut system, browser.name);

@@ -12,7 +12,7 @@ pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfil
         Ini::load_from_str(&profiles_str).wrap_err("Failed to parse profiles.ini")?;
     drop(profiles_str);
 
-    debug!(len = %profiles_doc.len(), "profiles ini read");
+    debug!(len = %profiles_doc.len(), "Profiles ini read");
 
     let mut profiles = profiles_doc
         .iter()
@@ -27,13 +27,14 @@ pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfil
 
     let before_dedup = profiles.len();
     profiles.dedup_by(|(_, first_path, _), (_, second_path, _)| first_path == second_path);
-    debug!(before = %before_dedup, after = %profiles.len(), "deduplicated profiles");
+    debug!(before = %before_dedup, after = %profiles.len(), "Deduplicated profiles");
 
+    // Split into default and non-default profiles
     let profiles: (Vec<_>, Vec<_>) =
         profiles.into_iter().partition(|(_, _, is_default)| *is_default);
     let defaults = profiles.0.len();
 
-    debug!(len = %defaults, "default profiles");
+    debug!(len = %defaults, "Default profiles");
 
     // Make sure defaults are first
     let profiles = <[_; 2]>::from(profiles)
@@ -45,6 +46,6 @@ pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfil
         .filter(|profile| validate_profile_dir(&profile.path))
         .collect::<Vec<_>>();
 
-    debug!("found {} valid profiles", profiles.len());
+    debug!("Found {} valid profiles", profiles.len());
     Ok((defaults, profiles))
 }

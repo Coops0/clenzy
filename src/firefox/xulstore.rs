@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::{fs, path::Path};
 use tracing::{debug, instrument, warn};
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn xulstore(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("xulstore.json");
     if !path.exists() {
@@ -23,12 +23,12 @@ pub fn xulstore(root: &Path) -> color_eyre::Result<()> {
 
     if let Some(vertical_tabs) = get_or_insert_obj(browser_content, "vertical-tabs") {
         vertical_tabs.insert(String::from("collapsed"), json!(false));
-        debug!("collapsed vertical tabs");
+        debug!("Collapsed vertical tabs");
     }
 
     if let Some(tabs_toolbar) = get_or_insert_obj(browser_content, "TabsToolbar") {
         tabs_toolbar.insert(String::from("collapsed"), json!(true));
-        debug!("collapsed tabs toolbar");
+        debug!("Collapsed tabs toolbar");
     }
 
     fs::write(&path, serde_json::to_string(&xulstore)?).map_err(color_eyre::eyre::Error::from)

@@ -13,7 +13,7 @@ macro_rules! s {
     };
 }
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
 
@@ -22,7 +22,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
 
         fs::copy(&path, &backup)?;
         success("Backed up Brave preferences file");
-        debug!("backup file path: {}", backup.display());
+        debug!("Backup file path: {}", backup.display());
     }
 
     let prefs_str = fs::read_to_string(&path);

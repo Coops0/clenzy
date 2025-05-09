@@ -4,9 +4,9 @@ mod xulstore;
 
 use crate::{firefox_common, logging::success, ARGS};
 use std::path::Path;
-use tracing::{info_span, instrument, warn};
+use tracing::{debug_span, instrument, warn};
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     let mut custom_overrides = vec![
         include_str!("../../snippets/betterfox_extra"),
@@ -32,7 +32,7 @@ pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     }
 
     for profile in profiles {
-        let span = info_span!("Updating xulstore", %profile);
+        let span = debug_span!("Updating xulstore", %profile);
         let _enter = span.enter();
 
         match xulstore::xulstore(&profile.path) {

@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
 use tracing::{debug, instrument, trace};
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     let local_state_path = root.join("Local State");
     let local_state_str =
@@ -19,7 +19,7 @@ pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     Ok(local_state)
 }
 
-#[instrument(skip(local_state))]
+#[instrument(skip(local_state), level = "debug")]
 pub fn update_local_state(
     mut local_state: Map<String, Value>,
     root: &Path
@@ -84,9 +84,9 @@ pub fn update_local_state(
             };
 
             // Return true to keep if the feature is not in the blacklist
-            !REMOVE_ENABLED_LAB_FEATURES.iter().any(|f| s == *f)
+            !REMOVE_ENABLED_LAB_FEATURES.contains(&s)
         });
-        debug!(before = %before, after = %enabled_lab_features.len(), "removed {} enabled lab features", before - enabled_lab_features.len());
+        debug!(before = %before, after = %enabled_lab_features.len(), "Removed {} enabled lab features", before - enabled_lab_features.len());
     }
 
     browser.insert(s!("default_browser_infobar_declined_count"), json!(9999));

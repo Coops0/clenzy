@@ -7,9 +7,9 @@ mod resources;
 
 use crate::browser_profile::BrowserProfile;
 use std::path::Path;
-use tracing::{debug, info_span, instrument, warn};
+use tracing::{debug, debug_span, instrument, warn};
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     let path =
         if cfg!(target_os = "windows") { path.join("User Data") } else { path.to_path_buf() };
@@ -38,7 +38,7 @@ pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     }
 
     for profile in profiles {
-        let span = info_span!("Debloating profile", profile = %profile.name);
+        let span = debug_span!("Debloating profile", profile = %profile.name);
         let _enter = span.enter();
 
         match preferences::preferences(&profile.path) {

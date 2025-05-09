@@ -10,7 +10,7 @@ static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
     include_str!("../../snippets/default_firefox_skip").lines().filter(|l| !l.is_empty()).collect()
 });
 
-#[instrument(skip(profile), fields(profile = %profile))]
+#[instrument(skip(profile), fields(profile = %profile), level = "debug")]
 pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
     // Canonicalize to convert to an absolute path just in case, so we can get parent dir
     let profiles_path = fs::canonicalize(&profile.path)
@@ -30,7 +30,7 @@ pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
 
     let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
 
-    debug!("creating backup zip file at {}", backup_path.display());
+    debug!("Creating backup zip file at {}", backup_path.display());
     for entry in entries {
         if let Err(why) = add_to_archive(
             &mut zip,
@@ -44,7 +44,7 @@ pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
         }
     }
 
-    debug!("finished creating backup zip file");
+    debug!("Finished creating backup zip file");
     success(&format!("Backup created for user profile {profile}"));
     zip.finish().wrap_err("Failed to finish zip file").map(|_| ())
 }

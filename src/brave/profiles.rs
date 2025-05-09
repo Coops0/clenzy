@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use std::path::Path;
 use tracing::{debug, instrument, warn};
 
-#[instrument(skip(local_state))]
+#[instrument(skip(local_state), level = "debug")]
 pub fn try_to_get_profiles(
     local_state: &Map<String, Value>,
     root: &Path

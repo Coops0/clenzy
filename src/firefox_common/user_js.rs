@@ -3,7 +3,7 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
 use tracing::{debug, instrument};
 
-#[instrument(skip(fetch_user_js, additional_snippets))]
+#[instrument(skip(fetch_user_js, additional_snippets), level = "debug")]
 pub fn install_user_js<'a, F>(
     profile: &BrowserProfile,
     fetch_user_js: F,
@@ -30,7 +30,7 @@ where
         }
 
         debug!(
-            "added {} additional lines to user.js (originally {})",
+            "Added {} additional lines to user.js (originally {})",
             additional_snippets.lines().count(),
             lines.len()
         );
@@ -39,7 +39,7 @@ where
 
     // Checks if user.js exists and content differs from configured_user_js
     if !should_overwrite_user_js(profile, &user_js_path, &configured_user_js) {
-        debug!(path = %user_js_path.display(), "not overwriting user.js");
+        debug!(path = %user_js_path.display(), "Not overwriting user.js");
         return Ok(());
     }
 

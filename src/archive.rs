@@ -5,7 +5,7 @@ use std::{
 use tracing::{debug, instrument, trace, warn};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
-#[instrument(skip_all)]
+#[instrument(skip_all, level = "debug")]
 pub fn add_to_archive(
     zip: &mut ZipWriter<File>,
     entry: io::Result<DirEntry>,
@@ -49,7 +49,7 @@ pub fn add_to_archive(
     Ok(())
 }
 
-#[instrument(skip(zip, abs_path, options, skip))]
+#[instrument(skip(zip, abs_path, options, skip), level = "debug")]
 fn add_dir_to_archive(
     zip: &mut ZipWriter<File>,
     abs_path: &Path,
@@ -70,7 +70,7 @@ fn add_dir_to_archive(
     Ok(())
 }
 
-#[instrument(skip(zip, options, path))]
+#[instrument(skip(zip, options, path), level = "debug")]
 fn add_file_to_archive(
     zip: &mut ZipWriter<File>,
     abs_path: &Path,

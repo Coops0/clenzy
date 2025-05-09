@@ -7,7 +7,7 @@ use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
 use tracing::{debug, instrument, warn};
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     if !path.exists() {
@@ -20,7 +20,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         match fs::copy(&path, &backup) {
             Ok(_) => {
                 success("Backed up Brave feature state file");
-                debug!("backup dir: {}", backup.display());
+                debug!("Backup dir: {}", backup.display());
             }
             Err(why) => {
                 warn!(err = ?why, path = %path.display(), "Failed to backup Brave feature state file, continuing anyway");
@@ -52,7 +52,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         }
     }
 
-    debug!("disabled additional {} features", disable_features.len() - before);
+    debug!("Disabled additional {} features", disable_features.len() - before);
     prefs.insert(s!("disable-features"), json!(disable_features.join(",")));
 
     let mut enabled_features = prefs
@@ -73,7 +73,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         true
     });
 
-    debug!("removed {} enabled features", before - enabled_features.len());
+    debug!("Removed {} enabled features", before - enabled_features.len());
     prefs.insert(s!("enable-features"), json!(&enabled_features.join(",")));
 
     // Just get rid of all of these, most are telemetry or ads.
@@ -85,6 +85,6 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     fs::write(&path, prefs_str)
         .wrap_err_with(|| format!("failed to write preferences to {}", path.display()))?;
 
-    debug!("wrote new chrome preferences");
+    debug!("Wrote new chrome preferences");
     Ok(())
 }

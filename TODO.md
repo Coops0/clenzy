@@ -11,7 +11,6 @@
     - appautoupdate, autofillcreditcardenabled, backgroundappupdate, disablefeedbackcommands, disablefirefoxstudies, disable forgot button?, disablemasterpasswordcreation, primarypassword, disableformhistory, disablepocket, disableprofileimport?, disabletelemetry, displaybookmarkstoolbar, displaymenubar, dontcheckdefaultbrowser, firefoxhome, firefoxsuggest, networkprediction (vvv), offertosavelogins, offertosaveloginsdefault, overridefirstrunpage, searchsuggestenabled, showhomebutton, skiptermsofuse, usermessaging
 - [other firefox autoconfig fields](https://support.mozilla.org/en-US/kb/customizing-firefox-using-autoconfig)
 - after all of these ^^^ settings are added, would be cool to have a smart selection UI where it gave you all the options, and when you had highlighted an option it showed more. and make it intelligent where if firefox/zen isn't detected, then don't show the options for firefox policies
-- disable all brave anything p3a
 
 ### Other Browsers
 

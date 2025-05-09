@@ -5,9 +5,9 @@ use std::{
     fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
-use tracing::{debug, info, info_span, instrument, warn};
+use tracing::{debug, debug_span, info, instrument, warn};
 
-#[instrument(skip(map))]
+#[instrument(skip(map), level = "debug")]
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
     key: &str
@@ -68,7 +68,7 @@ pub fn timestamp() -> String {
     chrono::Local::now().format("%Y%m%d%H%M").to_string()
 }
 
-#[instrument]
+#[instrument(level = "debug")]
 pub fn fetch_text(name: &str, url: &str) -> color_eyre::Result<String> {
     ureq::get(url)
         .call()
@@ -121,13 +121,13 @@ pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize], nam
     }
 }
 
-#[instrument(skip(system))]
+#[instrument(skip(system), level = "debug")]
 fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     let lower_name = name.to_lowercase();
     system.refresh_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::default()));
     let processes = system.processes();
 
-    debug!("found {} processes total", processes.len());
+    debug!("Found {} processes total", processes.len());
 
     let running_instances = processes
         .values()
@@ -140,7 +140,7 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     running_instances.join(", ")
 }
 
-#[instrument(skip(system))]
+#[instrument(skip(system), level = "debug")]
 pub fn check_if_running(system: &mut System, name: &str) {
     if ARGS.get().unwrap().auto_confirm {
         return;
@@ -185,11 +185,11 @@ where
     F: Fn() -> color_eyre::Result<O> + Send + 'static
 {
     std::thread::spawn(move || {
-        let span = info_span!("fetching resource", name);
+        let span = debug_span!("fetching resource", name);
         let _enter = span.enter();
 
         match f() {
-            Ok(_) => debug!("fetched resource"),
+            Ok(_) => debug!("Fetched resource"),
             Err(why) => warn!(err = ?why, "Failed to fetch resource")
         }
     });
