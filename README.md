@@ -47,7 +47,7 @@ Quickly disable AI, tracking, crypto, and other garbage features from some brows
 
 - **Opinionated Defaults** - Pre-configured settings for a clean experience
 - **Automatic Backup Creation** - Safely restore if needed
-- **Vertical Tabs** - Enabled by default (disable with `--no-vertical-tabs` flag)
+- **Vertical Tabs** - Enabled by default (disable with `-V` flag)
 - **Automatic** - Use auto confirmation flag (`-Y`) for script automation
 - **Betterfox.js** - For Firefox & Zen: Fetches & installs the latest Betterfox.js with extra tweaks
 
@@ -74,7 +74,7 @@ everytime I installed a browser to disable features and configure individual fla
   Ungoogled Chromium
 - ANY AI browser: Dia
 
-## 🧩 Recommended
+## 🧩 Recommendations
 
 ### Browsers
 
