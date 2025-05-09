@@ -4,10 +4,10 @@ use crate::{
     }, logging::success, util::timestamp, ARGS
 };
 use color_eyre::eyre::{ContextCompat, WrapErr};
-use serde_json::{json, Map, Value};
-use std::{fs, path::Path, sync::LazyLock};
-use tracing::{debug, instrument, warn};
 use resources::replace_symbols;
+use serde_json::{json, Map, Value};
+use std::{fs, path::Path};
+use tracing::{debug, instrument, warn};
 
 #[instrument]
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
@@ -41,13 +41,15 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         .get("enable-features")
         .and_then(Value::as_str)
         .unwrap_or_default()
-        .split(",")
+        .split(',')
         .collect::<Vec<_>>();
 
     let before = disable_features.len();
 
     for feature in DISABLED_FEATURES.iter() {
-        if !disable_features.contains(feature) && !disable_features.contains(&replace_symbols(feature).as_str()) {
+        if !disable_features.contains(feature)
+            && !disable_features.contains(&replace_symbols(feature).as_str())
+        {
             disable_features.push(feature);
         }
     }
@@ -59,7 +61,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         .get("enable-features")
         .and_then(Value::as_str)
         .unwrap_or_default()
-        .split(",")
+        .split(',')
         .collect::<Vec<_>>();
     let before = enabled_features.len();
 

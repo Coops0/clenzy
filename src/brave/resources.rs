@@ -3,7 +3,7 @@ use crate::ARGS;
 
 // Yeah. They literally write the string '\u003C' in the file.
 pub fn replace_symbols(line: &str) -> String {
-    line.replace(">", "\\u003C")
+    line.replace('>', "\\u003C")
 }
 
 pub static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
