@@ -12,6 +12,7 @@
 - [other firefox autoconfig fields](https://support.mozilla.org/en-US/kb/customizing-firefox-using-autoconfig)
 - make sure prefetch is disabled if suggestions are disabled
 - after all of these ^^^ settings are added, would be cool to have a smart selection UI where it gave you all the options, and when you had highlighted an option it showed more. and make it intelligent where if firefox/zen isn't detected, then don't show the options for firefox policies
+- disable all brave anything p3a
 
 ### Other Browsers
 
@@ -22,3 +23,4 @@
 - Figure out the hashing algorithm for Secure Preferences and brave, and install extensions
 - ^ same thing for setting kagi as default search engine
 - simple UI (egui?)
+- brave policies, no json have to do it via os [windows example](https://gist.github.com/slashwq/b19e2b125ca45f32e754e74ecc88db2c)

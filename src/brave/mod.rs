@@ -3,6 +3,7 @@ mod local_state;
 pub mod paths;
 mod preferences;
 mod profiles;
+mod resources;
 
 use crate::browser_profile::BrowserProfile;
 use std::path::Path;

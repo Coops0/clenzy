@@ -1,15 +1,13 @@
-use crate::{logging::success, util::timestamp, ARGS};
+use crate::{
+    brave::{
+        resources, resources::{DISABLED_FEATURES, REMOVE_ENABLED_FEATURES}
+    }, logging::success, util::timestamp, ARGS
+};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path, sync::LazyLock};
 use tracing::{debug, instrument, warn};
-
-static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    include_str!("../../snippets/disabled_brave_features")
-        .lines()
-        .filter(|line| !line.is_empty())
-        .collect()
-});
+use resources::replace_symbols;
 
 #[instrument]
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
@@ -38,30 +36,50 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
 
     let prefs = prefs_parsed.as_object_mut().context("failed to parse preferences as an object")?;
 
-    let disable_features = prefs
-        .entry("disable-features")
-        .or_insert_with(|| Value::Array(Vec::new()))
-        .as_array_mut()
-        .context("failed to get disable-features array")?;
+    // Both features are seperated by commas
+    let mut disable_features = prefs
+        .get("enable-features")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .split(",")
+        .collect::<Vec<_>>();
+
     let before = disable_features.len();
 
     for feature in DISABLED_FEATURES.iter() {
-        let v = json!(feature);
-        if !disable_features.contains(&v) {
-            disable_features.push(v);
-            debug!("added {} to disabled features", feature);
+        if !disable_features.contains(feature) && !disable_features.contains(&replace_symbols(feature).as_str()) {
+            disable_features.push(feature);
         }
     }
 
     debug!("disabled additional {} features", disable_features.len() - before);
+    prefs.insert(String::from("disable-features"), json!(disable_features.join(",")));
 
-    // In case we are creating the file, we need to supplement with the other properties
-    let _ = prefs.entry("enable-features").or_insert_with(|| Value::Array(Vec::new()));
-    let _ = prefs.entry("force-fieldtrial-params").or_insert_with(|| Value::String(String::new()));
-    let _ = prefs
-        .entry("force-fieldtrial")
-        // ? this is the default in mine
-        .or_insert_with(|| Value::String(String::from("*SeedFileTrial/Control_V7")));
+    let mut enabled_features = prefs
+        .get("enable-features")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .split(",")
+        .collect::<Vec<_>>();
+    let before = enabled_features.len();
+
+    enabled_features.retain(|x| {
+        for feature in REMOVE_ENABLED_FEATURES.iter() {
+            if x == feature || *x == replace_symbols(feature) {
+                return false;
+            }
+        }
+
+        true
+    });
+
+    debug!("removed {} enabled features", before - enabled_features.len());
+    prefs.insert(String::from("enable-features"), json!(&enabled_features.join(",")));
+
+    // Just get rid of all of these, most are telemetry or ads.
+    // These are IMMEDIATELY restored anyway
+    prefs.insert(String::from("force-fieldtrial-params"), json!(""));
+    prefs.insert(String::from("force-fieldtrials"), json!(""));
 
     let prefs_str = serde_json::to_string(&prefs)?;
     fs::write(&path, prefs_str)
