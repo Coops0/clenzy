@@ -19,6 +19,6 @@ pub fn zen_snap_folder() -> Option<PathBuf> {
 }
 
 pub fn zen_flatpak_folder() -> Option<PathBuf> {
-    let path = flatpak_base()?.join("app.zen_browser").join(".zen");
+    let path = flatpak_base()?.join("app.zen_browser.zen").join(".zen");
     path.exists().then_some(path)
 }

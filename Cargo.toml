@@ -3,7 +3,7 @@ cargo-features = ["profile-rustflags", "trim-paths"]
 [package]
 name = "clenzy"
 edition = "2024"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Cooper Hanessian"]
 homepage = "https://github.com/Coops0/clenzy"
 
