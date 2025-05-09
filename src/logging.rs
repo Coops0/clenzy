@@ -52,8 +52,8 @@ pub fn setup_logging(args: &Args) -> color_eyre::Result<()> {
     }
 
     let filter = match verbosity {
-        1 => filter.add_directive("browser_debloat=debug".parse()?),
-        2 => filter.add_directive("browser_debloat=trace".parse()?),
+        1 => filter.add_directive("clenzy=debug".parse()?),
+        2 => filter.add_directive("clenzy=trace".parse()?),
         _ => EnvFilter::builder().with_default_directive(LevelFilter::TRACE.into()).from_env()?
     };
 
