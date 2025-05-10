@@ -6,7 +6,6 @@ mod profiles;
 mod resources;
 
 use crate::browser_profile::BrowserProfile;
-use std::path::Path;
 use tracing::{debug, debug_span, instrument, warn};
 use crate::browsers::Installation;
 

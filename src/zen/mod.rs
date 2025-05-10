@@ -2,7 +2,6 @@ mod installations;
 pub mod resource;
 
 use crate::{firefox_common, ARGS};
-use std::path::Path;
 use tracing::instrument;
 use crate::browsers::Installation;
 
@@ -18,6 +17,6 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
     }
 
     let _ =
-        firefox_common::debloat(installation, resource::get_better_zen_user_js, &custom_overrides.join("\n"))?;
+        firefox_common::debloat(installation, resource::get_better_zen_user_js()?, &custom_overrides.join("\n"))?;
     Ok(())
 }

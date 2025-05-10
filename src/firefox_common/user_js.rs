@@ -3,19 +3,15 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
 use tracing::{debug, instrument};
 
-#[instrument(skip(fetch_user_js, additional_snippets), level = "debug")]
-pub fn install_user_js<'a, F>(
+#[instrument(skip(user_js, additional_snippets), level = "debug")]
+pub fn install_user_js(
     profile: &BrowserProfile,
-    fetch_user_js: F,
+    user_js: &str,
     additional_snippets: &str
-) -> color_eyre::Result<()>
-where
-    F: Fn() -> color_eyre::Result<&'a str>
-{
+) -> color_eyre::Result<()> {
     let user_js_path = profile.path.join("user.js");
 
     let configured_user_js = {
-        let user_js = fetch_user_js()?;
         let mut lines = user_js.lines().collect::<Vec<_>>();
         let start_my_overrides_pos = lines
             .iter()

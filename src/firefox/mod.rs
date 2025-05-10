@@ -6,7 +6,6 @@ mod policies;
 pub use installations::installations;
 
 use crate::{firefox_common, logging::success, ARGS};
-use std::path::Path;
 use tracing::{debug_span, instrument, warn};
 use crate::browsers::Installation;
 
@@ -27,7 +26,7 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
 
     let profiles = firefox_common::debloat(
         installation,
-        resource::get_better_fox_user_js,
+        resource::get_better_fox_user_js()?,
         &custom_overrides.join("\n")
     )?;
     

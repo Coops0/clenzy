@@ -11,12 +11,9 @@ mod zen;
 use crate::{
     browsers::Installation, logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
 };
-use brave::installations;
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{
-    env, fmt::Display, path::{Path, PathBuf}, sync::OnceLock
-};
+use std::{env, sync::OnceLock};
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
 
@@ -56,7 +53,8 @@ fn main() -> color_eyre::Result<()> {
 
     setup_logging(args)?;
 
-    let installations = brave::installations().into_iter()
+    let installations = brave::installations()
+        .into_iter()
         .chain(firefox::installations())
         .chain(zen::installations());
 
