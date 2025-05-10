@@ -2,7 +2,6 @@ use crate::{
     browsers::{Browser, Installation}, firefox, zen, ARGS
 };
 use color_eyre::eyre::Context;
-use inquire::error::InquireResult;
 use serde_json::{Map, Value};
 use std::{
     fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process

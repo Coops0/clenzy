@@ -6,10 +6,6 @@ use std::path::PathBuf;
 // FIXME all the execution folders
 
 fn local() -> Option<PathBuf> {
-    Some(roaming_data_base()?.join("Mozilla").join("Firefox"))   
-}
-
-fn local_exec() -> Option<PathBuf> {
     let base = roaming_data_base()?;
     if cfg!(target_os = "macos") {
         Some(base.join("Firefox"))
@@ -34,7 +30,6 @@ pub fn installations() -> Vec<Option<Installation>> {
     ret.push(
         Installation::builder(Browser::Firefox)
             .data_folder(local())
-            .installation_folder(local_exec())
             .build()
     );
 
