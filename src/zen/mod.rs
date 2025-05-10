@@ -7,9 +7,9 @@ pub mod resource;
 #[instrument(level = "debug")]
 pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     // Not all of these will be used but some are
-    let mut custom_overrides = vec![include_str!("../../snippets/betterfox_extra")];
+    let mut custom_overrides = vec![include_str!("../../snippets/firefox_common/betterfox_extra")];
     if ARGS.get().unwrap().search_suggestions {
-        custom_overrides.push(include_str!("../../snippets/firefox_search_suggestions"));
+        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
     }
 
     let _ =

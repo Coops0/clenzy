@@ -7,7 +7,7 @@ use tracing::{debug, instrument, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    include_str!("../../snippets/default_firefox_skip").lines().filter(|l| !l.is_empty()).collect()
+    include_str!("../../snippets/firefox_common/skipped_files").lines().filter(|l| !l.is_empty()).collect()
 });
 
 #[instrument(skip(profile), fields(profile = %profile), level = "debug")]

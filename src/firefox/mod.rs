@@ -1,6 +1,7 @@
 pub mod paths;
 pub mod resource;
 mod xulstore;
+mod policies;
 
 use crate::{firefox_common, logging::success, ARGS};
 use std::path::Path;
@@ -9,16 +10,16 @@ use tracing::{debug_span, instrument, warn};
 #[instrument(level = "debug")]
 pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     let mut custom_overrides = vec![
-        include_str!("../../snippets/betterfox_extra"),
-        include_str!("../../snippets/firefox_extra"),
+        include_str!("../../snippets/firefox_common/betterfox_extra"),
+        include_str!("../../snippets/firefox/extra"),
     ];
 
     if ARGS.get().unwrap().vertical_tabs {
-        custom_overrides.push(include_str!("../../snippets/firefox_vert_tabs"));
+        custom_overrides.push(include_str!("../../snippets/firefox/vert_tabs"));
     }
 
     if ARGS.get().unwrap().search_suggestions {
-        custom_overrides.push(include_str!("../../snippets/firefox_search_suggestions"));
+        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
     }
 
     let profiles = firefox_common::debloat(
