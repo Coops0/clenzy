@@ -1,6 +1,4 @@
-use crate::{
-    browsers::{Browser, Installation}, firefox, zen, ARGS
-};
+use crate::{firefox, zen, Browser, ARGS};
 use color_eyre::eyre::Context;
 use serde_json::{Map, Value};
 use std::{
@@ -9,6 +7,7 @@ use std::{
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, debug_span, info, instrument, warn};
 
+#[instrument(skip(map), level = "debug")]
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
     key: &str
@@ -28,36 +27,39 @@ pub fn get_or_insert_obj<'a>(
     ret
 }
 
-pub fn roaming_data_base() -> PathBuf {
+pub fn roaming_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
-        dirs::data_dir().unwrap_or_default()
+        dirs::data_dir()
     } else {
-        dirs::home_dir().unwrap_or_default()
+        dirs::home_dir()
     }
 }
 
-pub fn local_data_base() -> PathBuf {
+pub fn local_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
-        dirs::data_local_dir().unwrap_or_default()
+        dirs::data_local_dir()
     } else {
-        dirs::config_local_dir().unwrap_or_default()
+        dirs::config_local_dir()
     }
 }
 
-pub fn snap_base() -> PathBuf {
+#[allow(clippy::if_then_some_else_none)]
+pub fn snap_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
-        dirs::home_dir().unwrap_or_default().join("snap")
+        // Naive approach right now, maybe also check /snap/?
+        Some(dirs::home_dir()?.join("snap"))
     } else {
-        PathBuf::default()
+        None
     }
 }
 
-pub fn flatpak_base() -> PathBuf {
+#[allow(clippy::if_then_some_else_none)]
+pub fn flatpak_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
         // Is this the only location?
-        dirs::home_dir().unwrap_or_default().join(".var").join("app")
+        Some(dirs::home_dir()?.join(".var").join("app"))
     } else {
-        PathBuf::new()
+        None
     }
 }
 
@@ -104,17 +106,13 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     true
 }
 
-pub fn select_profiles<P: Display>(
-    mut profiles: Vec<P>,
-    selected: &[usize],
-    browser: Browser
-) -> Vec<P> {
+pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize], name: &str) -> Vec<P> {
     if ARGS.get().unwrap().auto_confirm {
         profiles
     } else if profiles.len() == 1 {
         vec![profiles.remove(0)]
     } else {
-        inquire::MultiSelect::new(&format!("Which profiles to debloat for {browser}?"), profiles)
+        inquire::MultiSelect::new(&format!("Which profiles to debloat for {name}?"), profiles)
             .with_default(selected)
             .prompt()
             .unwrap_or_default()
@@ -143,12 +141,12 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
 }
 
 #[instrument(skip(system), level = "debug")]
-pub fn check_if_running(system: &mut System, browser: Browser) {
+pub fn check_if_running(system: &mut System, name: &str) {
     if ARGS.get().unwrap().auto_confirm {
         return;
     }
 
-    let processes = get_matching_running_processes(system, format!("{browser}").as_str());
+    let processes = get_matching_running_processes(system, name);
     if processes.is_empty() {
         return;
     }
@@ -157,7 +155,7 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
     info!("Press any key to continue");
     let _ = stdin().read_exact(&mut [0_u8]);
 
-    let processes = get_matching_running_processes(system, format!("{browser}").as_str());
+    let processes = get_matching_running_processes(system, name);
     if processes.is_empty() {
         return;
     }
@@ -173,12 +171,12 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
     }
 }
 
-pub fn check_and_fetch_resources(browsers: &[Installation]) {
-    if browsers.iter().any(|b| b.browser == Browser::Firefox) {
+pub fn check_and_fetch_resources(browsers: &[Browser]) {
+    if browsers.iter().any(|b| b.name.contains("Firefox")) {
         start_fetch_resource("Betterfox User.js", firefox::resource::get_better_fox_user_js);
     }
-    if browsers.iter().any(|b| b.browser == Browser::Zen) {
-        start_fetch_resource("Betterfox Zen user.js", zen::resource::get_better_zen_user_js);
+    if browsers.iter().any(|b| b.name.contains("Zen")) {
+        start_fetch_resource("Better Zen user.js", zen::resource::get_better_zen_user_js);
     }
 }
 
@@ -195,11 +193,4 @@ where
             Err(why) => warn!(err = ?why, "Failed to fetch resource")
         }
     });
-}
-
-#[macro_export]
-macro_rules! s {
-    ($s:expr) => {
-        String::from($s)
-    };
 }

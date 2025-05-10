@@ -5,7 +5,6 @@ use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{Map, Value};
 use std::path::Path;
 use tracing::{debug, instrument, warn};
-use crate::browsers::Browser;
 
 #[instrument(skip(local_state), level = "debug")]
 pub fn try_to_get_profiles(
@@ -76,7 +75,7 @@ pub fn try_to_get_profiles(
         }
     );
 
-    let profiles = select_profiles(profiles, &selected, Browser::Firefox); // FIXME hardcoded firefox
+    let profiles = select_profiles(profiles, &selected, "Brave");
     if profiles.is_empty() {
         // If they explicitly select no profiles, then don't fallback to default
         return Ok(Vec::new());

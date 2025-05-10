@@ -1,17 +1,14 @@
-mod installations;
+pub mod paths;
 pub mod resource;
 mod xulstore;
 mod policies;
 
-pub use installations::installations;
-
 use crate::{firefox_common, logging::success, ARGS};
 use std::path::Path;
 use tracing::{debug_span, instrument, warn};
-use crate::browsers::Installation;
 
 #[instrument(level = "debug")]
-pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
+pub fn debloat(path: &Path) -> color_eyre::Result<()> {
     let mut custom_overrides = vec![
         include_str!("../../snippets/firefox_common/betterfox_extra"),
         include_str!("../../snippets/firefox/extra"),
@@ -26,11 +23,11 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
     }
 
     let profiles = firefox_common::debloat(
-        installation,
+        path,
+        "Firefox",
         resource::get_better_fox_user_js,
         &custom_overrides.join("\n")
     )?;
-    
     if !ARGS.get().unwrap().vertical_tabs {
         return Ok(());
     }
