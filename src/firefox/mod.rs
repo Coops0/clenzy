@@ -1,7 +1,6 @@
 pub mod paths;
 pub mod resource;
 mod xulstore;
-mod policies;
 
 use crate::{firefox_common, logging::success, ARGS};
 use std::path::Path;
