@@ -1,9 +1,8 @@
-use crate::{browser_profile::BrowserProfile, s, ARGS};
+use crate::{browser_profile::BrowserProfile, s, util::UnwrapOrExit, ARGS};
 use color_eyre::eyre::Context;
 use serde_json::json;
 use std::{fs, path::Path};
 use tracing::debug;
-
 
 pub fn create_policies_file(
     profile: &BrowserProfile,
@@ -52,7 +51,7 @@ fn should_write_policies(profile: &BrowserProfile, policies_path: &Path, policie
         "policies.json already exists for profile {profile}. Do you want to overwrite it? (y/n)"
     ))
     .prompt()
-    .expect("User killed program")
+    .unwrap_or_exit()
 }
 
 fn generate_policies() -> serde_json::Result<String> {

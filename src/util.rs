@@ -2,6 +2,7 @@ use crate::{
     browsers::{Browser, Installation}, firefox, zen, ARGS
 };
 use color_eyre::eyre::Context;
+use inquire::error::InquireResult;
 use serde_json::{Map, Value};
 use std::{
     fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
@@ -118,7 +119,7 @@ pub fn select_profiles<P: Display>(
         inquire::MultiSelect::new(&format!("Which profiles to debloat for {browser}?"), profiles)
             .with_default(selected)
             .prompt()
-            .expect("User killed program")
+            .unwrap_or_exit()
             .into_iter()
             .collect::<Vec<_>>()
     }
@@ -156,7 +157,10 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
 
     warn!("Please close all instances before debloating ({processes})");
     info!("Press any key to continue");
-    let _ = stdin().read_exact(&mut [0_u8]);
+    if let Err(why) = stdin().read_exact(&mut [0_u8]) {
+        warn!(err = %why, "Error reading stdin, exiting");
+        process::exit(0);
+    }
 
     let processes = get_matching_running_processes(system, format!("{browser}").as_str());
     if processes.is_empty() {
@@ -165,10 +169,7 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
 
     warn!("Some processes are still running ({processes})");
 
-    // We don't need to check for auto confirm since it's checked at the start of the function
-    let should_continue =
-        inquire::prompt_confirmation("Continue anyway? (y/n)").expect("User killed program");
-
+    let should_continue = inquire::prompt_confirmation("Continue anyway? (y/n)").unwrap_or_exit();
     if !should_continue {
         process::exit(0);
     }
@@ -196,6 +197,22 @@ where
             Err(why) => warn!(err = ?why, "Failed to fetch resource")
         }
     });
+}
+
+pub trait UnwrapOrExit<T> {
+    fn unwrap_or_exit(self) -> T;
+}
+
+impl<T> UnwrapOrExit<T> for InquireResult<T> {
+    fn unwrap_or_exit(self) -> T {
+        match self {
+            Ok(r) => r,
+            Err(_) => {
+                warn!("User killed program");
+                process::exit(0);
+            }
+        }
+    }
 }
 
 // Just for usage when doing a mass JSON insertion like `brave::preferences`

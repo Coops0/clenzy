@@ -1,4 +1,4 @@
-use crate::{browser_profile::BrowserProfile, ARGS};
+use crate::{browser_profile::BrowserProfile, util::UnwrapOrExit, ARGS};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
 use tracing::{debug, instrument};
@@ -63,5 +63,5 @@ fn should_write_user_js(profile: &BrowserProfile, path: &Path, user_js_str: &str
         "user.js already exists for profile {profile}. Do you want to overwrite it? (y/n)"
     ))
     .prompt()
-    .expect("User killed program")
+    .unwrap_or_exit()
 }

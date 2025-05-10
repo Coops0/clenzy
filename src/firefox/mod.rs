@@ -1,6 +1,7 @@
 mod installations;
 pub mod resource;
 mod xulstore;
+mod policies;
 
 pub use installations::installations;
 

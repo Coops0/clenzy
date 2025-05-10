@@ -4,10 +4,8 @@
 - detect if ublock origin isn't installed, if not, (^^^) offer to open it in the target browser with the correct
   extension store
 - firefox still showing whatsnew page on update
-- fix process check read 1 char for ctrl+c
-- change .expect("User killed program") to proper exit(1)
 
-1. need to add executable dir resolution too
+1. need to add executable dir resolution too and populate
 2. firefox [policies](https://mozilla.github.io/policy-templates/)
     - this should be disabled by default
     - appautoupdate, autofillcreditcardenabled, backgroundappupdate, disablefeedbackcommands, disablefirefoxstudies,
