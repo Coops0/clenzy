@@ -2,6 +2,7 @@ use crate::{
     browsers::{Browser, Installation}, firefox, zen, ARGS
 };
 use color_eyre::eyre::Context;
+use inquire::error::InquireResult;
 use serde_json::{Map, Value};
 use std::{
     fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
@@ -28,36 +29,37 @@ pub fn get_or_insert_obj<'a>(
     ret
 }
 
-pub fn roaming_data_base() -> PathBuf {
+pub fn roaming_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
-        dirs::data_dir().unwrap_or_default()
+        dirs::data_dir()
     } else {
-        dirs::home_dir().unwrap_or_default()
+        dirs::home_dir()
     }
 }
 
-pub fn local_data_base() -> PathBuf {
+pub fn local_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
-        dirs::data_local_dir().unwrap_or_default()
+        dirs::data_local_dir()
     } else {
-        dirs::config_local_dir().unwrap_or_default()
+        dirs::config_local_dir()
     }
 }
 
-pub fn snap_base() -> PathBuf {
+#[rustfmt::skip]
+pub fn snap_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
-        dirs::home_dir().unwrap_or_default().join("snap")
+        dirs::home_dir().map(|p| p.join("snap"))
     } else {
-        PathBuf::default()
+        None
     }
 }
 
-pub fn flatpak_base() -> PathBuf {
+#[rustfmt::skip]
+pub fn flatpak_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
-        // Is this the only location?
-        dirs::home_dir().unwrap_or_default().join(".var").join("app")
+        dirs::home_dir().map(|p| p.join(".var").join("app"))
     } else {
-        PathBuf::new()
+        None
     }
 }
 
@@ -117,7 +119,7 @@ pub fn select_profiles<P: Display>(
         inquire::MultiSelect::new(&format!("Which profiles to debloat for {browser}?"), profiles)
             .with_default(selected)
             .prompt()
-            .unwrap_or_default()
+            .expect("User killed program")
             .into_iter()
             .collect::<Vec<_>>()
     }
@@ -197,6 +199,7 @@ where
     });
 }
 
+// Just for usage when doing a mass JSON insertion like `brave::preferences`
 #[macro_export]
 macro_rules! s {
     ($s:expr) => {

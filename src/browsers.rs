@@ -75,18 +75,21 @@ impl InstallationBuilder {
         self
     }
 
+    #[rustfmt::skip]
     #[inline]
-    pub fn data_folder(mut self, data_folder: PathBuf) -> Self {
-        if data_folder.exists() {
-            self.data_folder = Some(data_folder);
+    pub fn data_folder(mut self, data_folder: Option<PathBuf>) -> Self {
+        // Not using self.data_folder = .is_some_and here because we don't want to overwrite in case previously set valid
+        if let Some(dat_folder) = data_folder && dat_folder.exists() {
+            self.data_folder = Some(dat_folder);
         }
         self
     }
 
+    #[rustfmt::skip]
     #[inline]
-    pub fn installation_folder(mut self, installation_folder: PathBuf) -> Self {
-        if installation_folder.exists() {
-            self.installation_folders.push(installation_folder);
+    pub fn installation_folder(mut self, installation_folder: Option<PathBuf>) -> Self {
+        if let Some(inst_folder) = installation_folder && inst_folder.exists() {
+            self.installation_folders.push(inst_folder);
         }
         self
     }

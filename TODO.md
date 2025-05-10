@@ -3,8 +3,9 @@
 - Brave finished debloating and backup not logging profile
 - detect if ublock origin isn't installed, if not, (^^^) offer to open it in the target browser with the correct
   extension store
-- make sure PathBuf::new()/default doesn't cause problems
 - firefox still showing whatsnew page on update
+- fix process check read 1 char for ctrl+c
+- change .expect("User killed program") to proper exit(1)
 
 1. need to add executable dir resolution too
 2. firefox [policies](https://mozilla.github.io/policy-templates/)

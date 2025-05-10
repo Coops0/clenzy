@@ -5,14 +5,27 @@ use std::path::PathBuf;
 
 // FIXME all the execution folders
 
-fn local_exec() -> PathBuf {
+fn local() -> Option<PathBuf> {
+    Some(roaming_data_base()?.join("Mozilla").join("Firefox"))   
+}
+
+fn local_exec() -> Option<PathBuf> {
+    let base = roaming_data_base()?;
     if cfg!(target_os = "macos") {
-        roaming_data_base().join("Firefox")
+        Some(base.join("Firefox"))
     } else if cfg!(target_os = "windows") {
-        roaming_data_base().join("Mozilla").join("Firefox")
+        Some(base.join("Mozilla").join("Firefox"))
     } else {
-        roaming_data_base().join(".mozilla").join("firefox")
+        Some(base.join(".mozilla").join("firefox"))
     }
+}
+
+fn snap() -> Option<PathBuf> {
+    Some(snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox"))
+}
+
+fn flatpak() -> Option<PathBuf> {
+    Some(flatpak_base()?.join("org.mozilla.firefox").join(".mozilla").join("firefox"))
 }
 
 pub fn installations() -> Vec<Option<Installation>> {
@@ -20,7 +33,7 @@ pub fn installations() -> Vec<Option<Installation>> {
 
     ret.push(
         Installation::builder(Browser::Firefox)
-            .data_folder(roaming_data_base().join("Mozilla").join("Firefox"))
+            .data_folder(local())
             .installation_folder(local_exec())
             .build()
     );
@@ -29,18 +42,14 @@ pub fn installations() -> Vec<Option<Installation>> {
         ret.push(
             Installation::builder(Browser::Firefox)
                 .installed_via(InstalledVia::Snap)
-                .data_folder(
-                    snap_base().join("firefox").join("common").join(".mozilla").join("firefox")
-                )
+                .data_folder(snap())
                 .build()
         );
 
         ret.push(
             Installation::builder(Browser::Firefox)
                 .installed_via(InstalledVia::Flatpak)
-                .data_folder(
-                    flatpak_base().join("org.mozilla.firefox").join(".mozilla").join("firefox")
-                )
+                .data_folder(flatpak())
                 .build()
         );
     }
