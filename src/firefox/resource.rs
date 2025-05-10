@@ -14,6 +14,7 @@ pub fn get_better_fox_user_js() -> color_eyre::Result<&'static str> {
             "https://raw.githubusercontent.com/yokoffing/Betterfox/main/user.js"
         )?;
         // SAFETY: This will only happen once during a program execution, and we really don't want to clone this string.
+        // We cannot return a &str because the Mutex owns it.
         *lock = String::leak(s);
     }
 

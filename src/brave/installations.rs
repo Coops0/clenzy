@@ -6,11 +6,21 @@ use std::path::PathBuf;
 // FIXME all of these execution folders
 
 fn local() -> Option<PathBuf> {
-    Some(local_data_base()?.join("BraveSoftware").join("Brave-Browser"))
+    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
+    if cfg!(target_os = "windows") {
+        ret = ret.join("User Data");
+    }
+
+    Some(ret)
 }
 
 fn local_nightly() -> Option<PathBuf> {
-    Some(local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly"))
+    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    if cfg!(target_os = "windows") {
+        ret = ret.join("User Data");
+    }
+
+    Some(ret)
 }
 
 fn snap() -> Option<PathBuf> {
