@@ -1,17 +1,8 @@
-use crate::{
-    logging::success, util::{get_or_insert_obj, timestamp}, ARGS
-};
+use crate::{logging::success, s, util::{get_or_insert_obj, timestamp}, ARGS};
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Value};
 use std::{fs, path::Path};
 use tracing::{debug, instrument, trace};
-
-#[macro_export]
-macro_rules! s {
-    ($s:expr) => {
-        String::from($s)
-    };
-}
 
 #[instrument(level = "debug")]
 pub fn preferences(root: &Path) -> color_eyre::Result<()> {
