@@ -102,20 +102,6 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-type BrowserTuple = (&'static str, Option<PathBuf>, fn(&Path) -> color_eyre::Result<()>);
-
-struct Browser {
-    name: &'static str,
-    folder: PathBuf,
-    debloat: fn(&Path) -> color_eyre::Result<()>
-}
-
-impl Display for Browser {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
 fn no_browsers_msg() {
     info!("No supported browsers found on your computer.");
     // let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");
