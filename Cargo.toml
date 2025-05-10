@@ -21,6 +21,7 @@ zip = { version = "2.6.1", default-features = false, features = ["deflate", "def
 sysinfo = { version = "0.35.0", default-features = false, features = ["system"] }
 clap = { version = "4.5.37", features = ["derive"] }
 owo-colors = "4.2.0"
+bon = "3.6.3"
 
 [profile.dev]
 incremental = true

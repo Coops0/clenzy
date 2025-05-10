@@ -38,7 +38,7 @@ where
     }?;
 
     // Checks if user.js exists and content differs from configured_user_js
-    if !should_overwrite_user_js(profile, &user_js_path, &configured_user_js) {
+    if !should_write_user_js(profile, &user_js_path, &configured_user_js) {
         debug!(path = %user_js_path.display(), "Not overwriting user.js");
         return Ok(());
     }
@@ -46,7 +46,7 @@ where
     fs::write(&user_js_path, configured_user_js).wrap_err("Failed to write user.js")
 }
 
-fn should_overwrite_user_js(profile: &BrowserProfile, path: &Path, user_js_str: &str) -> bool {
+fn should_write_user_js(profile: &BrowserProfile, path: &Path, user_js_str: &str) -> bool {
     if !path.exists() || ARGS.get().unwrap().auto_confirm {
         return true;
     }
