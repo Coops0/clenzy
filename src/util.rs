@@ -1,4 +1,6 @@
-use crate::{firefox, zen, ARGS};
+use crate::{
+    browsers::{Browser, Installation}, firefox, zen, ARGS
+};
 use color_eyre::eyre::Context;
 use serde_json::{Map, Value};
 use std::{
@@ -6,9 +8,7 @@ use std::{
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, debug_span, info, instrument, warn};
-use crate::browsers::{Browser, Installation};
 
-#[instrument(skip(map), level = "debug")]
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
     key: &str
@@ -104,7 +104,11 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     true
 }
 
-pub fn select_profiles<P: Display>(mut profiles: Vec<P>, selected: &[usize], browser: Browser) -> Vec<P> {
+pub fn select_profiles<P: Display>(
+    mut profiles: Vec<P>,
+    selected: &[usize],
+    browser: Browser
+) -> Vec<P> {
     if ARGS.get().unwrap().auto_confirm {
         profiles
     } else if profiles.len() == 1 {
@@ -170,13 +174,12 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
 }
 
 pub fn check_and_fetch_resources(browsers: &[Installation]) {
-    todo!();
-    // if browsers.iter().any(|b| b.name.contains("Firefox")) {
-    //     start_fetch_resource("Betterfox User.js", firefox::resource::get_better_fox_user_js);
-    // }
-    // if browsers.iter().any(|b| b.name.contains("Zen")) {
-    //     start_fetch_resource("Better Zen user.js", zen::resource::get_better_zen_user_js);
-    // }
+    if browsers.iter().any(|b| b.browser == Browser::Firefox) {
+        start_fetch_resource("Betterfox User.js", firefox::resource::get_better_fox_user_js);
+    }
+    if browsers.iter().any(|b| b.browser == Browser::Zen) {
+        start_fetch_resource("Betterfox Zen user.js", zen::resource::get_better_zen_user_js);
+    }
 }
 
 fn start_fetch_resource<F, O>(name: &'static str, f: F)
