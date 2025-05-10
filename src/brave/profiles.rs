@@ -1,15 +1,14 @@
 use crate::{
-    browser_profile::BrowserProfile, util::{select_profiles, validate_profile_dir}
+    browser_profile::BrowserProfile, browsers::{Browser, Installation}, util::{select_profiles, validate_profile_dir}
 };
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{Map, Value};
-use std::path::Path;
 use tracing::{debug, instrument, warn};
 
 #[instrument(skip(local_state), level = "debug")]
 pub fn try_to_get_profiles(
-    local_state: &Map<String, Value>,
-    root: &Path
+    installation: &Installation,
+    local_state: &Map<String, Value>
 ) -> color_eyre::Result<Vec<BrowserProfile>> {
     let profile = local_state
         .get("profile")
@@ -25,7 +24,7 @@ pub fn try_to_get_profiles(
         .filter_map(|(n, o)| Some((n, o.as_object()?)))
         .filter_map(|(n, o)| {
             let name = o.get("name").and_then(Value::as_str)?.to_owned();
-            let path = root.join(n);
+            let path = installation.data_folder.join(n);
             Some(BrowserProfile::new(name, path))
         })
         .filter(|profile| validate_profile_dir(&profile.path))
@@ -75,7 +74,7 @@ pub fn try_to_get_profiles(
         }
     );
 
-    let profiles = select_profiles(profiles, &selected, "Brave");
+    let profiles = select_profiles(profiles, &selected, Browser::Brave);
     if profiles.is_empty() {
         // If they explicitly select no profiles, then don't fallback to default
         return Ok(Vec::new());

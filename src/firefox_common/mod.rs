@@ -1,30 +1,26 @@
-use crate::{browser_profile::BrowserProfile, util::select_profiles, ARGS};
-use std::path::Path;
+use crate::{browser_profile::BrowserProfile, browsers::Installation, util::select_profiles, ARGS};
 use tracing::{debug, debug_span, instrument, warn};
 
 mod backup;
 mod profiles;
 mod user_js;
 
-#[instrument(skip(fetch_user_js, additional_snippets), level = "debug")]
-pub fn debloat<'a, F>(
-    path: &Path,
-    browser_name: &str,
-    fetch_user_js: F,
+#[instrument(skip(user_js, additional_snippets), level = "debug")]
+pub fn debloat(
+    installation: &Installation,
+    user_js: &str,
     additional_snippets: &str
-) -> color_eyre::Result<Vec<BrowserProfile>>
-where
-    F: Fn() -> color_eyre::Result<&'a str>
-{
-    let (defaults, profiles) = profiles::get_profiles(path)?;
+) -> color_eyre::Result<Vec<BrowserProfile>> {
+    let (defaults, profiles) = profiles::get_profiles(&installation.data_folder)?;
     debug!("Found {} valid profiles", profiles.len());
 
     if profiles.is_empty() {
-        warn!("No {browser_name} profiles found in profiles.ini");
+        warn!("No {} profiles found in profiles.ini", installation.browser);
         return Ok(Vec::new());
     }
 
-    let profiles = select_profiles(profiles, &(0..defaults).collect::<Vec<_>>(), browser_name);
+    let profiles =
+        select_profiles(profiles, &(0..defaults).collect::<Vec<_>>(), installation.browser);
     if profiles.is_empty() {
         return Ok(Vec::new());
     }
@@ -40,7 +36,7 @@ where
             }
         }
 
-        if let Err(why) = user_js::install_user_js(profile, &fetch_user_js, additional_snippets) {
+        if let Err(why) = user_js::install_user_js(profile, user_js, additional_snippets) {
             warn!(err = ?why, "Failed to install user.js for profile {profile}");
             continue;
         }

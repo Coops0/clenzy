@@ -1,6 +1,7 @@
 mod archive;
 mod brave;
 mod browser_profile;
+mod browsers;
 mod firefox;
 mod firefox_common;
 mod logging;
@@ -8,14 +9,11 @@ mod util;
 mod zen;
 
 use crate::{
-    logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
+    browsers::Installation, logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
 };
-use brave::paths;
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{
-    env, fmt::Display, path::{Path, PathBuf}, sync::OnceLock
-};
+use std::{env, sync::OnceLock};
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
 
@@ -55,58 +53,46 @@ fn main() -> color_eyre::Result<()> {
 
     setup_logging(args)?;
 
-    let browsers: [BrowserTuple; 10] = [
-        ("Brave", paths::brave_folder(), brave::debloat),
-        ("Brave Nightly", paths::brave_nightly_folder(), brave::debloat),
-        ("Brave (Snap)", paths::brave_snap_folder(), brave::debloat),
-        ("Brave (Flatpak", paths::brave_flatpak_folder(), brave::debloat),
-        ("Firefox", firefox::paths::firefox_folder(), firefox::debloat),
-        ("Firefox (Snap)", firefox::paths::firefox_snap_folder(), firefox::debloat),
-        ("Firefox (Flatpak)", firefox::paths::firefox_flatpak_folder(), firefox::debloat),
-        ("Zen", zen::paths::zen_folder(), zen::debloat),
-        ("Zen (Unofficial Snap)", zen::paths::zen_snap_folder(), zen::debloat),
-        ("Zen (Flatpak)", zen::paths::zen_flatpak_folder(), zen::debloat)
-    ];
-
-    let browsers = browsers
+    let installations = brave::installations()
         .into_iter()
-        .filter_map(|(name, path, debloat)| Some((name, path?, debloat)))
-        .map(|(name, path, debloat)| Browser { name, folder: path, debloat })
-        .collect::<Vec<_>>();
+        .chain(firefox::installations())
+        .chain(zen::installations());
 
-    if browsers.is_empty() {
-        no_browsers_msg(&browsers);
+    let installations: Vec<Installation> = installations.flatten().collect();
+
+    if installations.is_empty() {
+        no_browsers_msg();
         return Ok(());
     }
 
     // Fetches Firefox and Zen user.js scripts immediately
-    check_and_fetch_resources(&browsers);
+    check_and_fetch_resources(&installations);
 
-    let browsers_len = browsers.len();
-    let browsers = if args.auto_confirm {
-        browsers
+    let browsers_len = installations.len();
+    let installations = if args.auto_confirm {
+        installations
     } else {
-        MultiSelect::new("Select browsers to debloat", browsers)
+        MultiSelect::new("Select browsers to debloat", installations)
             .with_all_selected_by_default()
             .with_page_size(browsers_len)
             .prompt()?
     };
 
-    if browsers.is_empty() {
+    if installations.is_empty() {
         return Ok(());
     }
 
     let mut system = System::new();
 
-    for browser in browsers {
-        let span = debug_span!("debloat", browser = %browser.name);
+    for installation in installations {
+        let span = debug_span!("debloat", browser = %installation.browser);
         let _enter = span.enter();
 
-        check_if_running(&mut system, browser.name);
+        check_if_running(&mut system, installation.browser);
 
-        match (browser.debloat)(&browser.folder) {
+        match installation.debloat() {
             Ok(()) => success("Finished debloating browser"),
-            Err(why) => warn!(err = %why, "Failed to debloat {}", browser.name)
+            Err(why) => warn!(err = %why, "Failed to debloat {}", installation.browser)
         }
     }
 
@@ -114,24 +100,10 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-type BrowserTuple = (&'static str, Option<PathBuf>, fn(&Path) -> color_eyre::Result<()>);
-
-pub struct Browser {
-    pub name: &'static str,
-    folder: PathBuf,
-    debloat: fn(&Path) -> color_eyre::Result<()>
-}
-
-impl Display for Browser {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-fn no_browsers_msg(browsers: &[Browser]) {
+fn no_browsers_msg() {
     info!("No supported browsers found on your computer.");
-    let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");
-    info!("The list of supported browsers is: {supported}.");
+    // let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");
+    // info!("The list of supported browsers is: {supported}.");
 
     if cfg!(not(any(target_os = "windows", target_os = "macos"))) {
         warn!("You may have an unsupported OS ({}).", env::consts::OS);
