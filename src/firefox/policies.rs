@@ -6,19 +6,21 @@ use tracing::debug;
 
 pub fn create_policies_file(
     profile: &BrowserProfile,
-    executable_folder: &Path
+    app_folder: &Path
 ) -> color_eyre::Result<()> {
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
-        executable_folder
+        app_folder
             .join("Firefox.app")
             .join("Contents")
             .join("Resources")
             .join("distribution")
-    } else {
+    } else if cfg!(target_os = "linux") {
         // Same for windows and linux
-        executable_folder.join("distribution")
+        app_folder.join("distribution")
+    } else {
+        unreachable!();
     };
 
     let policies_path = folder.join("policies.json");

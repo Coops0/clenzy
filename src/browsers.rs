@@ -36,7 +36,7 @@ pub struct Installation {
     pub browser: Browser,
     pub installed_via: InstalledVia,
     pub data_folder: PathBuf,
-    pub installation_folders: Vec<PathBuf>,
+    pub app_folders: Vec<PathBuf>,
     pub variant: Option<Variant>
 }
 
@@ -54,7 +54,7 @@ pub struct InstallationBuilder {
     browser: Browser,
     installed_via: Option<InstalledVia>,
     data_folder: Option<PathBuf>,
-    installation_folders: Vec<PathBuf>,
+    app_folders: Vec<PathBuf>,
     variant: Option<Variant>
 }
 
@@ -64,7 +64,7 @@ impl InstallationBuilder {
             browser,
             installed_via: None,
             data_folder: None,
-            installation_folders: Vec::new(),
+            app_folders: Vec::new(),
             variant: None
         }
     }
@@ -87,10 +87,20 @@ impl InstallationBuilder {
 
     #[rustfmt::skip]
     #[inline]
-    pub fn installation_folder(mut self, installation_folder: Option<PathBuf>) -> Self {
-        if let Some(inst_folder) = installation_folder && inst_folder.exists() {
-            self.installation_folders.push(inst_folder);
+    pub fn app_folder(mut self, app_folder: Option<PathBuf>) -> Self {
+        if let Some(extra) = app_folder && extra.exists() {
+            self.app_folders.push(extra);
         }
+        self
+    }
+    
+    #[inline]
+    pub fn app_folders(mut self, app_folders: Vec<PathBuf>) -> Self {
+        let extras = app_folders
+            .into_iter()
+            .filter(|f| f.exists());
+        
+        self.app_folders.extend(extras);
         self
     }
 
@@ -110,7 +120,7 @@ impl InstallationBuilder {
             browser: self.browser,
             installed_via: self.installed_via.unwrap_or(InstalledVia::Local),
             data_folder,
-            installation_folders: self.installation_folders,
+            app_folders: self.app_folders,
             variant: self.variant
         })
     }

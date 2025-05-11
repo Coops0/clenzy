@@ -1,9 +1,7 @@
 use crate::{
-    browsers::{Browser, Installation, InstalledVia, Variant}, util::{flatpak_base, local_data_base, snap_base}
+    browsers::{Browser, Installation, InstalledVia, Variant}, util::{flatpak_base, local_app_bases, local_data_base, local_snap_base}
 };
 use std::path::PathBuf;
-
-// FIXME all of these execution folders
 
 fn local() -> Option<PathBuf> {
     let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
@@ -12,6 +10,19 @@ fn local() -> Option<PathBuf> {
     }
 
     Some(ret)
+}
+
+fn local_apps() -> Vec<PathBuf> {
+    let bases = local_app_bases();
+    if cfg!(target_os = "windows") {
+        bases.map(|f| f.join("BraveSoftware").join("Brave-Browser").join("Application")).collect()
+    } else if cfg!(target_os = "macos") {
+        bases.map(|f| f.join("Brave Browser.app").join("Contents")).collect()
+    } else if cfg!(target_os = "linux") {
+        todo!();
+    } else {
+        Vec::new()
+    }
 }
 
 fn local_nightly() -> Option<PathBuf> {
@@ -23,16 +34,34 @@ fn local_nightly() -> Option<PathBuf> {
     Some(ret)
 }
 
+fn local_nightly_apps() -> Vec<PathBuf> {
+    let bases = local_app_bases();
+    if cfg!(target_os = "windows") {
+        bases
+            .map(|f| f.join("BraveSoftware").join("Brave-Browser-Nightly").join("Application"))
+            .collect()
+    } else if cfg!(target_os = "macos") {
+        bases.map(|f| f.join("Brave Browser Nightly.app").join("Contents")).collect()
+    } else if cfg!(target_os = "linux") {
+        // https://brave.com/linux/
+        todo!();
+    } else {
+        Vec::new()
+    }
+}
+
 fn snap() -> Option<PathBuf> {
     Some(
-        snap_base()?
+        local_snap_base()?
             .join("brave")
-            .join("509")
+            .join("current") // This is a symlink TODO (make sure this works)
             .join(".config")
             .join("BraveSoftware")
             .join("Brave-Browser")
     )
 }
+
+// /snap/brave/current/opt/brave.com/brave
 
 fn flatpak() -> Option<PathBuf> {
     Some(
@@ -43,14 +72,22 @@ fn flatpak() -> Option<PathBuf> {
             .join("Brave-Browser")
     )
 }
+// /var/lib/flatpak/app/com.brave.Browser/current/active/files/brave
+
 pub fn installations() -> Vec<Option<Installation>> {
     let mut ret = Vec::with_capacity(4);
-    ret.push(Installation::builder(Browser::Brave).data_folder(local()).build());
+    ret.push(
+        Installation::builder(Browser::Brave)
+            .data_folder(local())
+            .app_folders(local_apps())
+            .build()
+    );
 
     ret.push(
         Installation::builder(Browser::Brave)
             .variant(Variant::Nightly)
             .data_folder(local_nightly())
+            .app_folders(local_nightly_apps())
             .build()
     );
 

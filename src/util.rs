@@ -32,21 +32,42 @@ pub fn get_or_insert_obj<'a>(
 pub fn roaming_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         dirs::data_dir()
-    } else {
+    } else if cfg!(target_os = "linux") {
         dirs::home_dir()
+    } else {
+        None
     }
 }
 
 pub fn local_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         dirs::data_local_dir()
-    } else {
+    } else if cfg!(target_os = "linux") {
         dirs::config_local_dir()
+    } else {
+        None
     }
 }
 
+pub fn local_app_bases() -> impl Iterator<Item = PathBuf> {
+    if cfg!(target_os = "windows") {
+        vec![
+            Some(PathBuf::from("C:\\Program Files")),
+            Some(PathBuf::from("C:\\Program Files (x86)")),
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![Some(PathBuf::from("/Applications")), dirs::home_dir().map(|p| p.join("Applications"))]
+    } else if cfg!(target_os = "linux") {
+        todo!();
+    } else {
+        Vec::new()
+    }
+    .into_iter()
+    .flatten()
+}
+
 #[rustfmt::skip]
-pub fn snap_base() -> Option<PathBuf> {
+pub fn local_snap_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
         dirs::home_dir().map(|p| p.join("snap"))
     } else {
