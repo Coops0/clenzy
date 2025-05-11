@@ -19,7 +19,7 @@ fn local_apps() -> Vec<PathBuf> {
     } else if cfg!(target_os = "macos") {
         bases.map(|f| f.join("Brave Browser.app").join("Contents")).collect()
     } else if cfg!(target_os = "linux") {
-        todo!();
+        bases.map(|f| f.join("brave.com").join("brave").join("brave-browser")).collect()
     } else {
         Vec::new()
     }
@@ -54,14 +54,22 @@ fn snap() -> Option<PathBuf> {
     Some(
         local_snap_base()?
             .join("brave")
-            .join("current") // This is a symlink TODO (make sure this works)
+            .join("current")
             .join(".config")
             .join("BraveSoftware")
             .join("Brave-Browser")
     )
 }
 
-// /snap/brave/current/opt/brave.com/brave
+fn snap_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("snap")
+        .join("brave")
+        .join("current")
+        .join("opt")
+        .join("brave.com")
+        .join("brave")
+}
 
 fn flatpak() -> Option<PathBuf> {
     Some(
@@ -72,7 +80,19 @@ fn flatpak() -> Option<PathBuf> {
             .join("Brave-Browser")
     )
 }
-// /var/lib/flatpak/app/com.brave.Browser/current/active/files/brave
+
+fn flatpak_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("var")
+        .join("lib")
+        .join("flatpak")
+        .join("app")
+        .join("com.brave.Browser")
+        .join("current")
+        .join("active")
+        .join("files")
+        .join("brave")
+}
 
 pub fn installations() -> Vec<Option<Installation>> {
     let mut ret = Vec::with_capacity(4);
@@ -96,6 +116,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Brave)
                 .installed_via(InstalledVia::Snap)
                 .data_folder(snap())
+                .app_folder(Some(snap_app()))
                 .build()
         );
 
@@ -103,6 +124,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Brave)
                 .installed_via(InstalledVia::Flatpak)
                 .data_folder(flatpak())
+                .app_folder(Some(flatpak_app()))
                 .build()
         );
     }

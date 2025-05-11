@@ -1,5 +1,5 @@
 use crate::{
-    browsers::{Browser, Installation, InstalledVia}, util::{flatpak_base, local_app_bases, roaming_data_base, local_snap_base}
+    browsers::{Browser, Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
 };
 use std::path::PathBuf;
 
@@ -34,9 +34,12 @@ fn local_apps() -> Vec<PathBuf> {
             .flat_map(|f| variants.iter().map(move |v| f.join(format!("{v}.app")).join("Contents")))
             .collect()
     } else if cfg!(target_os = "linux") {
-        // /opt/firefox
-        // ~/firefox/
-        todo!();
+        let mut bases = bases.map(|f| f.join("firefox")).collect::<Vec<_>>();
+        if let Some(home) = dirs::home_dir() {
+            bases.push(home.join("firefox"));
+        }
+
+        bases
     } else {
         Vec::new()
     }
@@ -46,13 +49,33 @@ fn snap() -> Option<PathBuf> {
     Some(local_snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox"))
 }
 
-// /snap/firefox/current/usr/lib/firefox (symlink)
+fn snap_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("snap")
+        .join("firefox")
+        .join("current")
+        .join("usr")
+        .join("lib")
+        .join("firefox")
+}
 
 fn flatpak() -> Option<PathBuf> {
     Some(flatpak_base()?.join("org.mozilla.firefox").join(".mozilla").join("firefox"))
 }
 
-// /var/lib/flatpak/app/org.mozilla.firefox/current/active/files/lib/firefox (symlink)
+fn flatpak_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("var")
+        .join("lib")
+        .join("flatpak")
+        .join("app")
+        .join("org.mozilla.firefox")
+        .join("current")
+        .join("active")
+        .join("files")
+        .join("lib")
+        .join("firefox")
+}
 
 pub fn installations() -> Vec<Option<Installation>> {
     let mut ret = Vec::with_capacity(3);
@@ -69,6 +92,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Firefox)
                 .installed_via(InstalledVia::Snap)
                 .data_folder(snap())
+                .app_folder(Some(snap_app()))
                 .build()
         );
 
@@ -76,6 +100,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Firefox)
                 .installed_via(InstalledVia::Flatpak)
                 .data_folder(flatpak())
+                .app_folder(Some(flatpak_app()))
                 .build()
         );
     }

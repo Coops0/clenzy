@@ -1,9 +1,7 @@
 use crate::{
-    browsers::{Browser, Installation, InstalledVia}, util::{flatpak_base, roaming_data_base, local_snap_base}
+    browsers::{Browser, Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
 };
 use std::path::PathBuf;
-use crate::util::local_app_bases;
-// FIXME all the execution folders
 
 fn local() -> Option<PathBuf> {
     let base = roaming_data_base()?;
@@ -18,41 +16,56 @@ fn local() -> Option<PathBuf> {
 
 fn local_apps() -> Vec<PathBuf> {
     if cfg!(target_os = "windows") {
-        return match dirs::data_local_dir().map(|f| f.join("Zen Browser")) {
-            Some(f) => vec![f],
-            None => Vec::new()
-        };
+        return dirs::data_local_dir()
+            .map(|f| f.join("Zen Browser"))
+            .map_or_else(Vec::new, |f| vec![f]);
     }
-    
+
     let bases = local_app_bases();
     if cfg!(target_os = "macos") {
         bases.map(|f| f.join("Zen Browser.app").join("Contents")).collect()
     } else if cfg!(target_os = "linux") {
-        todo!();
+        Vec::new()
     } else {
         Vec::new()
     }
 }
 
 fn snap() -> Option<PathBuf> {
-   Some(local_snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen")) 
+    Some(local_snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen"))
 }
 
-// /snap/0xgingi-zen-browser/current/usr/lib/zen
+fn snap_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("snap")
+        .join("0xgingi-zen-browser")
+        .join("current")
+        .join("usr")
+        .join("lib")
+        .join("zen")
+}
 
 fn flatpak() -> Option<PathBuf> {
     Some(flatpak_base()?.join("app.zen_browser.zen").join(".zen"))
 }
 
-// /var/lib/flatpak/app/app.zen_browser.zen/current/active/files/zen
+fn flatpak_app() -> PathBuf {
+    PathBuf::from("/")
+        .join("var")
+        .join("lib")
+        .join("flatpak")
+        .join("app")
+        .join("app.zen_browser.zen")
+        .join("current")
+        .join("active")
+        .join("files")
+        .join("zen")
+}
 
 pub fn installations() -> Vec<Option<Installation>> {
     let mut ret = Vec::with_capacity(3);
     ret.push(
-        Installation::builder(Browser::Zen)
-            .data_folder(local())
-            .app_folders(local_apps())
-            .build()
+        Installation::builder(Browser::Zen).data_folder(local()).app_folders(local_apps()).build()
     );
 
     if cfg!(target_os = "linux") {
@@ -60,6 +73,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Zen)
                 .installed_via(InstalledVia::Snap)
                 .data_folder(snap())
+                .app_folder(Some(snap_app()))
                 .build()
         );
 
@@ -67,6 +81,7 @@ pub fn installations() -> Vec<Option<Installation>> {
             Installation::builder(Browser::Zen)
                 .installed_via(InstalledVia::Flatpak)
                 .data_folder(flatpak())
+                .app_folder(Some(flatpak_app()))
                 .build()
         );
     }

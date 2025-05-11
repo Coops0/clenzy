@@ -58,7 +58,7 @@ pub fn local_app_bases() -> impl Iterator<Item = PathBuf> {
     } else if cfg!(target_os = "macos") {
         vec![Some(PathBuf::from("/Applications")), dirs::home_dir().map(|p| p.join("Applications"))]
     } else if cfg!(target_os = "linux") {
-        todo!();
+        vec![Some(PathBuf::from("/").join("opt"))]
     } else {
         Vec::new()
     }
@@ -180,7 +180,7 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
     info!("Press any key to continue");
     if let Err(why) = stdin().read_exact(&mut [0_u8]) {
         warn!(err = %why, "Error reading stdin, exiting");
-        process::exit(0);
+        process::exit(1);
     }
 
     let processes = get_matching_running_processes(system, format!("{browser}").as_str());
@@ -192,7 +192,7 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
 
     let should_continue = inquire::prompt_confirmation("Continue anyway? (y/n)").unwrap_or_exit();
     if !should_continue {
-        process::exit(0);
+        process::exit(1);
     }
 }
 
@@ -226,13 +226,10 @@ pub trait UnwrapOrExit<T> {
 
 impl<T> UnwrapOrExit<T> for InquireResult<T> {
     fn unwrap_or_exit(self) -> T {
-        match self {
-            Ok(r) => r,
-            Err(_) => {
-                warn!("User killed program");
-                process::exit(0);
-            }
-        }
+        self.unwrap_or_else(|_| {
+            warn!("User killed program");
+            process::exit(1);
+        })
     }
 }
 
