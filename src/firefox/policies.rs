@@ -4,27 +4,22 @@ use serde_json::json;
 use std::{fs, path::Path};
 use tracing::debug;
 
-pub fn create_policies_file(
-    profile: &BrowserProfile,
-    app_folder: &Path
-) -> color_eyre::Result<()> {
+pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()> {
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
-        app_folder
+        installation_folder
             .join("Firefox.app")
             .join("Contents")
             .join("Resources")
             .join("distribution")
-    } else if cfg!(target_os = "linux") {
-        // Same for windows and linux
-        app_folder.join("distribution")
     } else {
-        unreachable!();
+        // Same for windows and linux
+        installation_folder.join("distribution")
     };
 
     let policies_path = folder.join("policies.json");
-    if !should_write_policies(profile, &policies_path, &policies) {
+    if !should_write_policies(&policies_path, &policies) {
         debug!(path = %policies_path.display(), "Not overwriting policies.json");
         return Ok(());
     }
@@ -33,7 +28,7 @@ pub fn create_policies_file(
     fs::write(&policies_path, policies).wrap_err("Failed to write policies.json")
 }
 
-fn should_write_policies(profile: &BrowserProfile, policies_path: &Path, policies: &str) -> bool {
+fn should_write_policies(policies_path: &Path, policies: &str) -> bool {
     if !policies_path.exists() || ARGS.get().unwrap().auto_confirm {
         return true;
     }
@@ -49,9 +44,9 @@ fn should_write_policies(profile: &BrowserProfile, policies_path: &Path, policie
         return true;
     }
 
-    inquire::Confirm::new(&format!(
-        "policies.json already exists for profile {profile}. Do you want to overwrite it? (y/n)"
-    ))
+    inquire::Confirm::new(
+        "policies.json already exists for Firefox. Do you want to overwrite it? (y/n)"
+    )
     .prompt()
     .unwrap_or_exit()
 }

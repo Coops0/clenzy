@@ -9,11 +9,9 @@ fn local() -> Option<PathBuf> {
         Some(base.join("Firefox"))
     } else if cfg!(target_os = "windows") {
         Some(base.join("Mozilla").join("Firefox"))
-    } else if cfg!(target_os = "linux") {
-        Some(base.join(".mozilla").join("firefox"))
     } else {
-        None
-    }
+        Some(base.join(".mozilla").join("firefox"))
+    } 
 }
 
 // We're not going to classify the variants as different installations, as there's
@@ -33,16 +31,14 @@ fn local_apps() -> Vec<PathBuf> {
         bases
             .flat_map(|f| variants.iter().map(move |v| f.join(format!("{v}.app")).join("Contents")))
             .collect()
-    } else if cfg!(target_os = "linux") {
+    } else {
         let mut bases = bases.map(|f| f.join("firefox")).collect::<Vec<_>>();
         if let Some(home) = dirs::home_dir() {
             bases.push(home.join("firefox"));
         }
 
         bases
-    } else {
-        Vec::new()
-    }
+    } 
 }
 
 fn snap() -> Option<PathBuf> {

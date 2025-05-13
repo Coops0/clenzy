@@ -40,7 +40,23 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
 
         match xulstore::xulstore(&profile.path) {
             Ok(()) => success(&format!("Updated xulstore.json for {profile}")),
-            Err(why) => warn!(err = %why, "Failed to update")
+            Err(why) => warn!(err = %why, "Failed to update xulstore.json for {profile}"),
+        }
+    }
+    
+    if !ARGS.get().unwrap().create_policies {
+        return Ok(());
+    }
+    
+    if installation.app_folders.is_empty() {
+        warn!("No app folders found for Firefox, skipping creating policies");
+        return Ok(());
+    }
+    
+    for folder in &installation.app_folders {
+        if let Err(why) = policies::create_policies_file(folder) {
+            warn!(err = %why, "Failed to create policies");
+            return Ok(());
         }
     }
 

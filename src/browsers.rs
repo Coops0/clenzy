@@ -48,6 +48,10 @@ impl Installation {
     pub fn debloat(&self) -> color_eyre::Result<()> {
         self.browser.debloat_fn()(self)
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.data_folder.exists()
+    }
 }
 
 pub struct InstallationBuilder {
@@ -93,13 +97,11 @@ impl InstallationBuilder {
         }
         self
     }
-    
+
     #[inline]
     pub fn app_folders(mut self, app_folders: Vec<PathBuf>) -> Self {
-        let extras = app_folders
-            .into_iter()
-            .filter(|f| f.exists());
-        
+        let extras = app_folders.into_iter().filter(|f| f.exists());
+
         self.app_folders.extend(extras);
         self
     }

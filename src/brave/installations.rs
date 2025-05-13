@@ -18,11 +18,9 @@ fn local_apps() -> Vec<PathBuf> {
         bases.map(|f| f.join("BraveSoftware").join("Brave-Browser").join("Application")).collect()
     } else if cfg!(target_os = "macos") {
         bases.map(|f| f.join("Brave Browser.app").join("Contents")).collect()
-    } else if cfg!(target_os = "linux") {
-        bases.map(|f| f.join("brave.com").join("brave").join("brave-browser")).collect()
     } else {
-        Vec::new()
-    }
+        bases.map(|f| f.join("brave.com").join("brave").join("brave-browser")).collect()
+    } 
 }
 
 fn local_nightly() -> Option<PathBuf> {
@@ -42,10 +40,9 @@ fn local_nightly_apps() -> Vec<PathBuf> {
             .collect()
     } else if cfg!(target_os = "macos") {
         bases.map(|f| f.join("Brave Browser Nightly.app").join("Contents")).collect()
-    } else if cfg!(target_os = "linux") {
-        // https://brave.com/linux/
-        todo!();
     } else {
+        // https://brave.com/linux/
+        // FIXME
         Vec::new()
     }
 }

@@ -7,10 +7,8 @@ fn local() -> Option<PathBuf> {
     let base = roaming_data_base()?;
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         Some(base.join("zen"))
-    } else if cfg!(target_os = "linux") {
-        Some(base.join(".zen"))
     } else {
-        None
+        Some(base.join(".zen"))
     }
 }
 
@@ -24,8 +22,6 @@ fn local_apps() -> Vec<PathBuf> {
     let bases = local_app_bases();
     if cfg!(target_os = "macos") {
         bases.map(|f| f.join("Zen Browser.app").join("Contents")).collect()
-    } else if cfg!(target_os = "linux") {
-        Vec::new()
     } else {
         Vec::new()
     }

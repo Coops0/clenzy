@@ -1,22 +1,9 @@
 # Todo
 
-- Brave finished debloating and backup not logging profile
 - detect if ublock origin isn't installed, if not, (^^^) offer to open it in the target browser with the correct
   extension store
 - firefox still showing whatsnew page on update
-
-1. need to add executable dir resolution too and populate
-2. firefox [policies](https://mozilla.github.io/policy-templates/)
-    - this should be disabled by default
-    - appautoupdate, autofillcreditcardenabled, backgroundappupdate, disablefeedbackcommands, disablefirefoxstudies,
-      disable forgot button?, disablemasterpasswordcreation, primarypassword, disableformhistory, disablepocket,
-      disableprofileimport?, disabletelemetry, displaybookmarkstoolbar, displaymenubar, dontcheckdefaultbrowser,
-      firefoxhome, firefoxsuggest, networkprediction (vvv), offertosavelogins, offertosaveloginsdefault,
-      overridefirstrunpage, searchsuggestenabled, showhomebutton, skiptermsofuse, usermessaging
-    - [other firefox autoconfig fields](https://support.mozilla.org/en-US/kb/customizing-firefox-using-autoconfig)
-3. after all of these ^^^ settings are added, would be cool to have a smart selection UI where it gave you all the
-   options, and when you had highlighted an option it showed more. and make it intelligent where if firefox/zen isn't
-   detected, then don't show the options for firefox policies
+- keep populating executable paths
 
 ### Other Browsers
 

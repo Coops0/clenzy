@@ -32,20 +32,16 @@ pub fn get_or_insert_obj<'a>(
 pub fn roaming_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         dirs::data_dir()
-    } else if cfg!(target_os = "linux") {
-        dirs::home_dir()
     } else {
-        None
-    }
+        dirs::home_dir()
+    } 
 }
 
 pub fn local_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         dirs::data_local_dir()
-    } else if cfg!(target_os = "linux") {
+    } else{
         dirs::config_local_dir()
-    } else {
-        None
     }
 }
 
@@ -57,11 +53,9 @@ pub fn local_app_bases() -> impl Iterator<Item = PathBuf> {
         ]
     } else if cfg!(target_os = "macos") {
         vec![Some(PathBuf::from("/Applications")), dirs::home_dir().map(|p| p.join("Applications"))]
-    } else if cfg!(target_os = "linux") {
+    } else  {
         vec![Some(PathBuf::from("/").join("opt"))]
-    } else {
-        Vec::new()
-    }
+    } 
     .into_iter()
     .flatten()
 }

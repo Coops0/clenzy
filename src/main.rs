@@ -36,9 +36,13 @@ pub struct Args {
     #[clap(long = "no-backup", short = 'B', action = ArgAction::SetFalse, default_value_t = true)]
     pub backup: bool,
 
-    /// Enable search suggestions and prefetching. Every word in the URL bar you type will be sent to your search provider.
-    #[clap(long = "search-suggestions", short = 'S', default_value_t = false)]
-    pub search_suggestions: bool
+    /// Disable search suggestions and prefetching. Every word in the URL bar you type will be sent to your search provider if search suggestions are enabled.
+    #[clap(long = "no-search-suggestions", short = 'S', action = ArgAction::SetFalse, default_value_t = true)]
+    pub search_suggestions: bool,
+
+    /// Enable creating policy files for Firefox (as of now)
+    #[clap(long = "create-policies", short = 'P', default_value_t = false)]
+    pub create_policies: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -58,8 +62,7 @@ fn main() -> color_eyre::Result<()> {
         .chain(firefox::installations())
         .chain(zen::installations());
 
-    let installations: Vec<Installation> = installations.flatten().collect();
-
+    let installations = installations.flatten().filter(Installation::is_valid).collect::<Vec<_>>();
     if installations.is_empty() {
         no_browsers_msg();
         return Ok(());
