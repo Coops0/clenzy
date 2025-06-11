@@ -1,12 +1,11 @@
 use std::path::Path;
 use crate::{browser_profile::BrowserProfile, browsers::Installation, util::select_profiles, ARGS};
-use tracing::{debug, debug_span, instrument, warn};
+use tracing::{debug, debug_span, warn};
 
 mod backup;
 mod profiles;
 mod user_js;
 
-#[instrument(skip(user_js, additional_snippets), level = "debug")]
 pub fn debloat(
     installation: &Installation,
     data_folder: &Path,
@@ -17,7 +16,6 @@ pub fn debloat(
     debug!("Found {} valid profiles", profiles.len());
 
     if profiles.is_empty() {
-        warn!("No {} profiles found in profiles.ini", installation.browser);
         return Ok(Vec::new());
     }
 

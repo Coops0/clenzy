@@ -2,9 +2,8 @@ use crate::util::get_or_insert_obj;
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{json, Value};
 use std::{fs, path::Path};
-use tracing::{debug, instrument, warn};
+use tracing::{debug, warn};
 
-#[instrument(level = "debug")]
 pub fn xulstore(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("xulstore.json");
     if !path.exists() {

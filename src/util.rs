@@ -9,7 +9,7 @@ use std::{
 };
 use std::collections::HashSet;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
-use tracing::{debug, debug_span, info, instrument, warn};
+use tracing::{debug, debug_span, info, warn};
 
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
@@ -84,7 +84,6 @@ pub fn timestamp() -> String {
     chrono::Local::now().format("%Y%m%d%H%M").to_string()
 }
 
-#[instrument(level = "debug")]
 pub fn fetch_text(name: &str, url: &str) -> color_eyre::Result<String> {
     ureq::get(url)
         .call()
@@ -116,6 +115,7 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
 
     // If no files or only times.json (on Firefox)
     if children <= 3 {
+        debug!(path = %profile.display(), "Profile directory is empty or only contains times.json");
         return false;
     }
 
@@ -141,7 +141,6 @@ pub fn select_profiles<P: Display>(
     }
 }
 
-#[instrument(skip(system), level = "debug")]
 fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     let lower_name = name.to_lowercase();
     system.refresh_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::default()));
@@ -160,7 +159,6 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     running_instances.into_iter().collect::<Vec<_>>().join(", ")
 }
 
-#[instrument(skip(system), level = "debug")]
 pub fn check_if_running(system: &mut System, browser: Browser) {
     if ARGS.get().unwrap().auto_confirm {
         return;

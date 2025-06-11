@@ -94,7 +94,7 @@ fn main() -> color_eyre::Result<()> {
         check_if_running(&mut system, installation.browser);
 
         match installation.debloat() {
-            Ok(()) => success("Finished debloating browser"),
+            Ok(()) => success(&format!("Finished debloating {}", installation.browser)),
             Err(why) => warn!(err = %why, "Failed to debloat {}", installation.browser)
         }
     }

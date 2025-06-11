@@ -1,9 +1,8 @@
 use crate::{browser_profile::BrowserProfile, util::UnwrapOrExit, ARGS};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
-use tracing::{debug, instrument};
+use tracing::debug;
 
-#[instrument(skip(user_js, additional_snippets), level = "debug")]
 pub fn install_user_js(
     profile: &BrowserProfile,
     user_js: &str,

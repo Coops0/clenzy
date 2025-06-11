@@ -3,14 +3,13 @@ use crate::{
 };
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, fs::File, path::Path, sync::LazyLock};
-use tracing::{debug, instrument, warn};
+use tracing::{debug, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
 
 static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
     include_str!("../../snippets/firefox_common/skipped_files").lines().filter(|l| !l.is_empty()).collect()
 });
 
-#[instrument(skip(profile), fields(profile = %profile), level = "debug")]
 pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
     // Canonicalize to convert to an absolute path just in case, so we can get parent dir
     let profiles_path = fs::canonicalize(&profile.path)

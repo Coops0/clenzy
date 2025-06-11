@@ -5,9 +5,8 @@ use color_eyre::eyre::{ContextCompat, WrapErr};
 use resources::replace_symbols;
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
-use tracing::{debug, instrument, warn};
+use tracing::{debug, warn};
 
-#[instrument(level = "debug")]
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");
     if !path.exists() {

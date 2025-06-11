@@ -2,9 +2,8 @@ use crate::{brave::resources::REMOVE_ENABLED_LAB_FEATURES, s, util::get_or_inser
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
-use tracing::{debug, instrument};
+use tracing::debug;
 
-#[instrument(level = "debug")]
 pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     let local_state_path = root.join("Local State");
     let local_state_str =
@@ -19,7 +18,6 @@ pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     Ok(local_state)
 }
 
-#[instrument(skip(local_state), level = "debug")]
 pub fn update_local_state(
     mut local_state: Map<String, Value>,
     root: &Path

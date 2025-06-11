@@ -8,7 +8,9 @@ X86_64_UNKNOWN_LINUX_GNU := x86_64-unknown-linux-gnu
 AARCH64_UNKNOWN_LINUX_GNU := aarch64-unknown-linux-gnu
 
 .PHONY: all
-all: build-all
+all:
+	rm -rf $(DIST_DIR)
+	build-all
 
 .PHONY: setup
 setup:
@@ -20,26 +22,25 @@ setup:
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
-# Build natively for ARM Mac and x86 Mac
 .PHONY: aarch64-apple-darwin
 aarch64-apple-darwin: $(DIST_DIR)
 	cargo +nightly build --release --target $(AARCH64_APPLE_DARWIN)
-	cp target/$(AARCH64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-arm64
+	cp -f target/$(AARCH64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-arm64
 
 .PHONY: x86_64-apple-darwin
 x86_64-apple-darwin: $(DIST_DIR)
 	cargo +nightly build --release --target $(X86_64_APPLE_DARWIN)
-	cp target/$(X86_64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-x86_64
+	cp -f target/$(X86_64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-x86_64
 
 .PHONY: x86_64-pc-windows-gnu
 x86_64-pc-windows-gnu: $(DIST_DIR)
 	cross +nightly build --release --target $(X86_64_PC_WINDOWS_GNU)
-	cp target/$(X86_64_PC_WINDOWS_GNU)/release/$(BINARY_NAME).exe $(DIST_DIR)/$(BINARY_NAME)-windows-x86_64.exe
+	cp -f target/$(X86_64_PC_WINDOWS_GNU)/release/$(BINARY_NAME).exe $(DIST_DIR)/$(BINARY_NAME)-windows-x86_64.exe
 
 .PHONY: x86_64-unknown-linux-gnu
 x86_64-unknown-linux-gnu: $(DIST_DIR)
 	cross +nightly build --release --target $(X86_64_UNKNOWN_LINUX_GNU)
-	cp target/$(X86_64_UNKNOWN_LINUX_GNU)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-linux-x86_64
+	cp -f target/$(X86_64_UNKNOWN_LINUX_GNU)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-linux-x86_64
 
 .PHONY: aarch64-unknown-linux-gnu
 aarch64-unknown-linux-gnu: $(DIST_DIR)
@@ -53,7 +54,3 @@ build-all: aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-gnu x86_64
 clean:
 	cargo clean
 	rm -rf $(DIST_DIR)
-
-.PHONY: run
-run:
-	cargo +nightly run --release

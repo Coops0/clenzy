@@ -20,11 +20,7 @@ pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfil
             Some((
                 prop.get("Name")?,
                 prop.get("Path")?,
-                {
-                    let d = prop.get("Default")?;
-                    d.parse::<u8>().ok()
-                }
-                .unwrap_or_default() == 1
+                prop.get("Default").and_then(|d| d.parse::<u8>().ok()).unwrap_or_default() == 1
             ))
         })
         .collect::<Vec<_>>();
@@ -50,6 +46,6 @@ pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfil
         .filter(|profile| validate_profile_dir(&profile.path))
         .collect::<Vec<_>>();
 
-    debug!("Found {} valid profiles", profiles.len());
+    debug!("Found {} valid profiles", profiles.len() + defaults);
     Ok((defaults, profiles))
 }

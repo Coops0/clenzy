@@ -1,14 +1,12 @@
 use std::path::Path;
 use crate::{
-    browser_profile::BrowserProfile, browsers::{Browser, Installation}, util::{select_profiles, validate_profile_dir}
+    browser_profile::BrowserProfile, browsers::Browser, util::{select_profiles, validate_profile_dir}
 };
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{Map, Value};
-use tracing::{debug, instrument, warn};
+use tracing::debug;
 
-#[instrument(skip(local_state), level = "debug")]
 pub fn try_to_get_profiles(
-    installation: &Installation,
     data_folder: &Path,
     local_state: &Map<String, Value>
 ) -> color_eyre::Result<Vec<BrowserProfile>> {

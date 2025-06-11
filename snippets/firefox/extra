@@ -13,3 +13,5 @@ user_prefs("browser.bookmarks.showMobileBookmarks", false);
 
 // I am only seeing weather on Ubuntu Firefox beta?
 user_pref("browser.newpagetab.activity-stream.showWeather", false);
+
+user_pref("sidebar.main.tools", "");

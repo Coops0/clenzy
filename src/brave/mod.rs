@@ -7,15 +7,15 @@ mod resources;
 
 use std::path::Path;
 use crate::browser_profile::BrowserProfile;
-use tracing::{debug, debug_span, instrument, warn};
+use tracing::{debug, debug_span, warn};
 use crate::browsers::Installation;
 
 pub use installations::installations;
 
-#[instrument(level = "debug")]
+#[allow(clippy::unnecessary_wraps)]
 pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
     for data_folder in &installation.data_folders {
-        if let Err(why) = debloat_data_folder(installation, data_folder) {
+        if let Err(why) = debloat_data_folder(data_folder) {
             warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
         } else {
             debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
@@ -26,10 +26,10 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
 }
 
 
-fn debloat_data_folder(installation: &Installation, data_folder: &Path) -> color_eyre::Result<()> {
+fn debloat_data_folder(data_folder: &Path) -> color_eyre::Result<()> {
     let local_state = local_state::get_local_state(data_folder)?;
 
-    let profiles = match profiles::try_to_get_profiles(installation, data_folder, &local_state) {
+    let profiles = match profiles::try_to_get_profiles(data_folder, &local_state) {
         Ok(profiles) => {
             debug!(len = %profiles.len(), "Found profiles");
             profiles
