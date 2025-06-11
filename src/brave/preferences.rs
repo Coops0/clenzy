@@ -5,6 +5,7 @@ use std::{fs, path::Path};
 use tracing::{debug, instrument, trace};
 
 #[instrument(level = "debug")]
+#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
 

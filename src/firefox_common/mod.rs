@@ -29,11 +29,11 @@ pub fn debloat(
         let span = debug_span!("Debloating profile", profile = %profile);
         let _enter = span.enter();
 
-        if ARGS.get().unwrap().backup {
-            if let Err(why) = backup::backup_profile(profile) {
-                warn!(err = ?why, "Failed to backup profile {profile}");
-                continue;
-            }
+        if ARGS.get().unwrap().backup
+            && let Err(why) = backup::backup_profile(profile)
+        {
+            warn!(err = ?why, "Failed to backup profile {profile}");
+            continue;
         }
 
         if let Err(why) = user_js::install_user_js(profile, user_js, additional_snippets) {

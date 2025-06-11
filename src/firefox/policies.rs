@@ -1,4 +1,4 @@
-use crate::{browser_profile::BrowserProfile, s, util::UnwrapOrExit, ARGS};
+use crate::{s, util::UnwrapOrExit, ARGS};
 use color_eyre::eyre::Context;
 use serde_json::json;
 use std::{fs, path::Path};
