@@ -7,6 +7,7 @@ use serde_json::{Map, Value};
 use std::{
     fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
 };
+use std::collections::HashSet;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, debug_span, info, instrument, warn};
 
@@ -154,9 +155,9 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
             let name = p.name().to_str()?;
             name.to_lowercase().contains(&lower_name).then_some(name)
         })
-        .collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
 
-    running_instances.join(", ")
+    running_instances.into_iter().collect::<Vec<_>>().join(", ")
 }
 
 #[instrument(skip(system), level = "debug")]

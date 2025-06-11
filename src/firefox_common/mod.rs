@@ -1,3 +1,4 @@
+use std::path::Path;
 use crate::{browser_profile::BrowserProfile, browsers::Installation, util::select_profiles, ARGS};
 use tracing::{debug, debug_span, instrument, warn};
 
@@ -8,10 +9,11 @@ mod user_js;
 #[instrument(skip(user_js, additional_snippets), level = "debug")]
 pub fn debloat(
     installation: &Installation,
+    data_folder: &Path,
     user_js: &str,
     additional_snippets: &str
 ) -> color_eyre::Result<Vec<BrowserProfile>> {
-    let (defaults, profiles) = profiles::get_profiles(&installation.data_folder)?;
+    let (defaults, profiles) = profiles::get_profiles(data_folder)?;
     debug!("Found {} valid profiles", profiles.len());
 
     if profiles.is_empty() {

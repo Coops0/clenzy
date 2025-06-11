@@ -35,7 +35,7 @@ pub enum Variant {
 pub struct Installation {
     pub browser: Browser,
     pub installed_via: InstalledVia,
-    pub data_folder: PathBuf,
+    pub data_folders: Vec<PathBuf>,
     pub app_folders: Vec<PathBuf>,
     pub variant: Option<Variant>
 }
@@ -50,14 +50,14 @@ impl Installation {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.data_folder.exists()
+        !self.data_folders.is_empty()
     }
 }
 
 pub struct InstallationBuilder {
     browser: Browser,
     installed_via: Option<InstalledVia>,
-    data_folder: Option<PathBuf>,
+    data_folders: Vec<PathBuf>,
     app_folders: Vec<PathBuf>,
     variant: Option<Variant>
 }
@@ -67,7 +67,7 @@ impl InstallationBuilder {
         Self {
             browser,
             installed_via: None,
-            data_folder: None,
+            data_folders: Vec::new(),
             app_folders: Vec::new(),
             variant: None
         }
@@ -82,12 +82,20 @@ impl InstallationBuilder {
     #[rustfmt::skip]
     #[inline]
     pub fn data_folder(mut self, data_folder: Option<PathBuf>) -> Self {
-        // Not using self.data_folder = .is_some_and here because we don't want to overwrite in case previously set valid
-        if let Some(dat_folder) = data_folder && dat_folder.exists() {
-            self.data_folder = Some(dat_folder);
+        if let Some(df) = data_folder && df.exists() {
+            self.data_folders.push(df);
         }
         self
     }
+
+    #[inline]
+    pub fn data_folders(mut self, data_folders: Vec<PathBuf>) -> Self {
+        let extras = data_folders.into_iter().filter(|f| f.exists());
+
+        self.data_folders.extend(extras);
+        self
+    }
+
 
     #[rustfmt::skip]
     #[inline]
@@ -113,15 +121,10 @@ impl InstallationBuilder {
     }
 
     pub fn build(self) -> Option<Installation> {
-        let data_folder = match self.data_folder {
-            Some(f) if f.exists() => f,
-            _ => return None
-        };
-
         Some(Installation {
             browser: self.browser,
             installed_via: self.installed_via.unwrap_or(InstalledVia::Local),
-            data_folder,
+            data_folders: self.data_folders,
             app_folders: self.app_folders,
             variant: self.variant
         })

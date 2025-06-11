@@ -3,13 +3,23 @@ use crate::{
 };
 use std::path::PathBuf;
 
-fn local() -> Option<PathBuf> {
-    let base = roaming_data_base()?;
+fn local() -> Vec<PathBuf> {
+    let mut ret = Vec::with_capacity(3);
+
+    let roaming_base = roaming_data_base();
     if cfg!(any(target_os = "macos", target_os = "windows")) {
-        Some(base.join("zen"))
-    } else {
-        Some(base.join(".zen"))
+        if let Some(rb) = roaming_base {
+            ret.push(rb.join("zen"));
+        }
+
+        if let Some(ld) = dirs::data_local_dir() {
+            ret.push(ld.join("zen"));
+        }
+    } else if let Some(rb) = roaming_base {
+        ret.push(rb.join(".zen"));
     }
+
+    ret
 }
 
 fn local_apps() -> Vec<PathBuf> {
@@ -61,7 +71,7 @@ fn flatpak_app() -> PathBuf {
 pub fn installations() -> Vec<Option<Installation>> {
     let mut ret = Vec::with_capacity(3);
     ret.push(
-        Installation::builder(Browser::Zen).data_folder(local()).app_folders(local_apps()).build()
+        Installation::builder(Browser::Zen).data_folders(local()).app_folders(local_apps()).build()
     );
 
     if cfg!(target_os = "linux") {

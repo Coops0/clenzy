@@ -5,6 +5,7 @@ mod preferences;
 mod profiles;
 mod resources;
 
+use std::path::Path;
 use crate::browser_profile::BrowserProfile;
 use tracing::{debug, debug_span, instrument, warn};
 use crate::browsers::Installation;
@@ -13,25 +14,38 @@ pub use installations::installations;
 
 #[instrument(level = "debug")]
 pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
-    let local_state = local_state::get_local_state(&installation.data_folder)?;
+    for data_folder in &installation.data_folders {
+        if let Err(why) = debloat_data_folder(installation, data_folder) {
+            warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
+        } else {
+            debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
+        }
+    }
 
-    let profiles = match profiles::try_to_get_profiles(installation, &local_state) {
+    Ok(())
+}
+
+
+fn debloat_data_folder(installation: &Installation, data_folder: &Path) -> color_eyre::Result<()> {
+    let local_state = local_state::get_local_state(data_folder)?;
+
+    let profiles = match profiles::try_to_get_profiles(installation, data_folder, &local_state) {
         Ok(profiles) => {
             debug!(len = %profiles.len(), "Found profiles");
             profiles
         }
         Err(why) => {
             warn!(err = ?why, "Failed to get profiles, falling back to default");
-            vec![BrowserProfile::new(String::from("Default"), installation.data_folder.join("Default"))]
+            vec![BrowserProfile::new(String::from("Default"), data_folder.join("Default"))]
         }
     };
 
-    match local_state::update_local_state(local_state, &installation.data_folder) {
+    match local_state::update_local_state(local_state, data_folder) {
         Ok(()) => debug!("Updated brave's local state"),
         Err(why) => warn!(err = ?why, "Failed to brave's update local state")
     }
 
-    match chrome_feature_state::chrome_feature_state(&installation.data_folder) {
+    match chrome_feature_state::chrome_feature_state(data_folder) {
         Ok(()) => debug!("Updated brave's ChromeFeatureState"),
         Err(why) => warn!(err = ?why, "Failed to update brave's ChromeFeatureState")
     }

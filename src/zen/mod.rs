@@ -2,7 +2,7 @@ mod installations;
 pub mod resource;
 
 use crate::{firefox_common, ARGS};
-use tracing::instrument;
+use tracing::{debug, instrument, warn};
 use crate::browsers::Installation;
 
 pub use installations::installations;
@@ -16,7 +16,13 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
         custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
     }
 
-    let _ =
-        firefox_common::debloat(installation, resource::get_better_zen_user_js()?, &custom_overrides.join("\n"))?;
+    for data_folder in &installation.data_folders {
+        if let Err(why) = firefox_common::debloat(installation, data_folder, resource::get_better_zen_user_js()?, &custom_overrides.join("\n")) {
+            warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
+        } else {
+            debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
+        }
+    }
+
     Ok(())
 }

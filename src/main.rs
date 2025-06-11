@@ -29,15 +29,15 @@ pub struct Args {
     pub auto_confirm: bool,
 
     /// Disable setting browsers to use vertical tabs
-    #[clap(long = "no-vertical-tabs", short = 'V', action = ArgAction::SetFalse, default_value_t = true)]
+    #[clap(long = "no-vertical-tabs", action = ArgAction::SetFalse, default_value_t = true)]
     pub vertical_tabs: bool,
 
     /// Disable the creation of backups
-    #[clap(long = "no-backup", short = 'B', action = ArgAction::SetFalse, default_value_t = true)]
+    #[clap(long = "no-backup", action = ArgAction::SetFalse, default_value_t = true)]
     pub backup: bool,
 
     /// Disable search suggestions and prefetching. Every word in the URL bar you type will be sent to your search provider if search suggestions are enabled.
-    #[clap(long = "no-search-suggestions", short = 'S', action = ArgAction::SetFalse, default_value_t = true)]
+    #[clap(long = "no-search-suggestions", action = ArgAction::SetFalse, default_value_t = true)]
     pub search_suggestions: bool,
 
     /// Enable creating policy files for Firefox (as of now)

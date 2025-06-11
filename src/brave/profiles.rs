@@ -1,3 +1,4 @@
+use std::path::Path;
 use crate::{
     browser_profile::BrowserProfile, browsers::{Browser, Installation}, util::{select_profiles, validate_profile_dir}
 };
@@ -8,6 +9,7 @@ use tracing::{debug, instrument, warn};
 #[instrument(skip(local_state), level = "debug")]
 pub fn try_to_get_profiles(
     installation: &Installation,
+    data_folder: &Path,
     local_state: &Map<String, Value>
 ) -> color_eyre::Result<Vec<BrowserProfile>> {
     let profile = local_state
@@ -24,7 +26,7 @@ pub fn try_to_get_profiles(
         .filter_map(|(n, o)| Some((n, o.as_object()?)))
         .filter_map(|(n, o)| {
             let name = o.get("name").and_then(Value::as_str)?.to_owned();
-            let path = installation.data_folder.join(n);
+            let path = data_folder.join(n);
             Some(BrowserProfile::new(name, path))
         })
         .filter(|profile| validate_profile_dir(&profile.path))

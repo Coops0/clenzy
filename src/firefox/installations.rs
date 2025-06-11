@@ -3,15 +3,27 @@ use crate::{
 };
 use std::path::PathBuf;
 
-fn local() -> Option<PathBuf> {
-    let base = roaming_data_base()?;
+fn local() -> Vec<PathBuf> {
+    let mut ret = Vec::with_capacity(3);
+
+    let roaming_base = roaming_data_base();
     if cfg!(target_os = "macos") {
-        Some(base.join("Firefox"))
+        if let Some(rb) = roaming_base {
+            ret.push(rb.join("Firefox"));
+        }
+
+        if let Some(lb) = dirs::data_local_dir() {
+            ret.push(lb.join("Mozilla").join("Firefox"));
+        }
     } else if cfg!(target_os = "windows") {
-        Some(base.join("Mozilla").join("Firefox"))
-    } else {
-        Some(base.join(".mozilla").join("firefox"))
-    } 
+        if let Some(rb) = roaming_base {
+            ret.push(rb.join("Mozilla").join("Firefox"));
+        }
+    } else if let Some(rb) = roaming_base {
+        ret.push(rb.join(".mozilla").join("firefox"));
+    }
+
+    ret
 }
 
 // We're not going to classify the variants as different installations, as there's
@@ -38,7 +50,7 @@ fn local_apps() -> Vec<PathBuf> {
         }
 
         bases
-    } 
+    }
 }
 
 fn snap() -> Option<PathBuf> {
@@ -78,7 +90,7 @@ pub fn installations() -> Vec<Option<Installation>> {
 
     ret.push(
         Installation::builder(Browser::Firefox)
-            .data_folder(local())
+            .data_folders(local())
             .app_folders(local_apps())
             .build()
     );
