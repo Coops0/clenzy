@@ -49,7 +49,7 @@ impl Installation {
         self.browser.debloat_fn()(self)
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub const fn is_valid(&self) -> bool {
         !self.data_folders.is_empty()
     }
 }
@@ -120,14 +120,14 @@ impl InstallationBuilder {
         self
     }
 
-    pub fn build(self) -> Option<Installation> {
-        Some(Installation {
+    pub fn build(self) -> Installation {
+        Installation {
             browser: self.browser,
             installed_via: self.installed_via.unwrap_or(InstalledVia::Local),
             data_folders: self.data_folders,
             app_folders: self.app_folders,
             variant: self.variant
-        })
+        }
     }
 }
 

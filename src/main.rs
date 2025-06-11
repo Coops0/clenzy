@@ -62,7 +62,7 @@ fn main() -> color_eyre::Result<()> {
         .chain(firefox::installations())
         .chain(zen::installations());
 
-    let installations = installations.flatten().filter(Installation::is_valid).collect::<Vec<_>>();
+    let installations = installations.filter(Installation::is_valid).collect::<Vec<_>>();
     if installations.is_empty() {
         no_browsers_msg();
         return Ok(());

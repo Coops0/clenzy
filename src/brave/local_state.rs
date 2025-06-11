@@ -2,7 +2,7 @@ use crate::{brave::resources::REMOVE_ENABLED_LAB_FEATURES, s, util::get_or_inser
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 
 #[instrument(level = "debug")]
 pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
@@ -31,12 +31,10 @@ pub fn update_local_state(
 
     if let Some(ai_chat) = get_or_insert_obj(brave, "ai_chat") {
         ai_chat.insert(s!("p3a_last_premium_status"), json!(false));
-        trace!("disabled brave AI chat");
     }
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
         brave_ads.insert(s!("enabled_last_profile"), json!(false));
-        trace!("disabled brave ads");
     }
 
     if let Some(brave_search_conversion) = get_or_insert_obj(brave, "brave_search_conversion") {
@@ -44,7 +42,6 @@ pub fn update_local_state(
             && let Some(banner_d) = get_or_insert_obj(action_statuses, "banner_d")
         {
             banner_d.insert(s!("shown"), json!(true));
-            trace!("disabled brave search conversion");
         }
 
         brave_search_conversion.insert(s!("already_churned"), json!(true));
@@ -59,14 +56,12 @@ pub fn update_local_state(
     if let Some(p3a) = get_or_insert_obj(brave, "p3a") {
         p3a.insert(s!("enabled"), json!(false));
         p3a.insert(s!("notice_acknowledged"), json!(true));
-        trace!("disabled p3a");
     }
 
     if let Some(referral) = get_or_insert_obj(brave, "referral") {
         // FIXME This is my default but I need to check if I can disable both of these
         referral.insert(s!("initialization"), json!(true));
         referral.insert(s!("promo_code"), json!("BRV001"));
-        trace!("disabled referral");
     }
 
     let browser = local_state
@@ -90,7 +85,6 @@ pub fn update_local_state(
     }
 
     browser.insert(s!("default_browser_infobar_declined_count"), json!(9999));
-    trace!("hid default browser notification spam");
 
     fs::write(root.join("Local State"), serde_json::to_string(&local_state)?)
         .wrap_err("Failed to write Local State")

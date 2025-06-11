@@ -68,7 +68,7 @@ fn flatpak_app() -> PathBuf {
         .join("zen")
 }
 
-pub fn installations() -> Vec<Option<Installation>> {
+pub fn installations() -> Vec<Installation> {
     let mut ret = Vec::with_capacity(3);
     ret.push(
         Installation::builder(Browser::Zen).data_folders(local()).app_folders(local_apps()).build()
