@@ -1,10 +1,11 @@
 use std::path::Path;
 use crate::{
-    browser_profile::BrowserProfile, browsers::Browser, util::{select_profiles, validate_profile_dir}
+    browser_profile::BrowserProfile, util::{select_profiles, validate_profile_dir}
 };
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{Map, Value};
 use tracing::debug;
+use crate::brave::Brave;
 
 pub fn try_to_get_profiles(
     data_folder: &Path,
@@ -74,7 +75,7 @@ pub fn try_to_get_profiles(
         }
     );
 
-    let profiles = select_profiles(profiles, &selected, Browser::Brave);
+    let profiles = select_profiles::<_, Brave>(profiles, &selected);
     if profiles.is_empty() {
         // If they explicitly select no profiles, then don't fallback to default
         return Ok(Vec::new());

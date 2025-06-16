@@ -1,7 +1,8 @@
 use crate::{
-    browsers::{Browser, Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
+    installation::{Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
 };
 use std::path::PathBuf;
+use crate::zen::Zen;
 
 fn local() -> Vec<PathBuf> {
     let mut ret = Vec::with_capacity(3);
@@ -71,12 +72,12 @@ fn flatpak_app() -> PathBuf {
 pub fn installations() -> Vec<Installation> {
     let mut ret = Vec::with_capacity(3);
     ret.push(
-        Installation::builder(Browser::Zen).data_folders(local()).app_folders(local_apps()).build()
+        Installation::builder::<Zen>().data_folders(local()).app_folders(local_apps()).build()
     );
 
     if cfg!(target_os = "linux") {
         ret.push(
-            Installation::builder(Browser::Zen)
+            Installation::builder::<Zen>()
                 .installed_via(InstalledVia::Snap)
                 .data_folder(snap())
                 .app_folder(Some(snap_app()))
@@ -84,7 +85,7 @@ pub fn installations() -> Vec<Installation> {
         );
 
         ret.push(
-            Installation::builder(Browser::Zen)
+            Installation::builder::<Zen>()
                 .installed_via(InstalledVia::Flatpak)
                 .data_folder(flatpak())
                 .app_folder(Some(flatpak_app()))

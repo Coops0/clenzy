@@ -1,22 +1,5 @@
-use crate::{brave, firefox, zen};
+use crate::browser::Browser;
 use std::{fmt::Display, path::PathBuf};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Browser {
-    Brave,
-    Firefox,
-    Zen
-}
-
-impl Browser {
-    fn debloat_fn(self) -> fn(&Installation) -> color_eyre::Result<()> {
-        match self {
-            Self::Brave => brave::debloat,
-            Self::Firefox => firefox::debloat,
-            Self::Zen => zen::debloat
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InstalledVia {
@@ -33,7 +16,9 @@ pub enum Variant {
 #[derive(Clone, Debug)]
 #[allow(clippy::struct_field_names)]
 pub struct Installation {
-    pub browser: Browser,
+    // TODO see which we can make private & remove clippy allow
+    pub browser_name: &'static str,
+    pub debloat_fn: fn(&Installation) -> color_eyre::Result<()>,
     pub installed_via: InstalledVia,
     pub data_folders: Vec<PathBuf>,
     pub app_folders: Vec<PathBuf>,
@@ -41,12 +26,12 @@ pub struct Installation {
 }
 
 impl Installation {
-    pub const fn builder(browser: Browser) -> InstallationBuilder {
-        InstallationBuilder::new(browser)
+    pub fn builder<B: Browser>() -> InstallationBuilder {
+        InstallationBuilder::new::<B>()
     }
 
     pub fn debloat(&self) -> color_eyre::Result<()> {
-        self.browser.debloat_fn()(self)
+        (self.debloat_fn)(self)
     }
 
     pub const fn is_valid(&self) -> bool {
@@ -55,7 +40,8 @@ impl Installation {
 }
 
 pub struct InstallationBuilder {
-    browser: Browser,
+    browser_name: &'static str,
+    debloat_fn: fn(&Installation) -> color_eyre::Result<()>,
     installed_via: Option<InstalledVia>,
     data_folders: Vec<PathBuf>,
     app_folders: Vec<PathBuf>,
@@ -63,9 +49,10 @@ pub struct InstallationBuilder {
 }
 
 impl InstallationBuilder {
-    const fn new(browser: Browser) -> Self {
+    fn new<B: Browser>() -> Self {
         Self {
-            browser,
+            browser_name: B::name(),
+            debloat_fn: B::debloat,
             installed_via: None,
             data_folders: Vec::new(),
             app_folders: Vec::new(),
@@ -122,21 +109,12 @@ impl InstallationBuilder {
 
     pub fn build(self) -> Installation {
         Installation {
-            browser: self.browser,
+            browser_name: self.browser_name,
+            debloat_fn: self.debloat_fn,
             installed_via: self.installed_via.unwrap_or(InstalledVia::Local),
             data_folders: self.data_folders,
             app_folders: self.app_folders,
             variant: self.variant
-        }
-    }
-}
-
-impl Display for Browser {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Brave => write!(f, "Brave"),
-            Self::Firefox => write!(f, "Firefox"),
-            Self::Zen => write!(f, "Zen")
         }
     }
 }
@@ -161,7 +139,7 @@ impl Display for Variant {
 
 impl Display for Installation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.browser)?;
+        write!(f, "{}", self.browser_name)?;
         if let Some(variant) = self.variant {
             write!(f, "/{variant}")?;
         }

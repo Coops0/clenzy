@@ -8,23 +8,34 @@ mod resources;
 use std::path::Path;
 use crate::browser_profile::BrowserProfile;
 use tracing::{debug, debug_span, warn};
-use crate::browsers::Installation;
+use crate::installation::Installation;
 
-pub use installations::installations;
+use installations::installations;
+use crate::browser::Browser;
 
-#[allow(clippy::unnecessary_wraps)]
-pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
-    for data_folder in &installation.data_folders {
-        if let Err(why) = debloat_data_folder(data_folder) {
-            warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
-        } else {
-            debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
-        }
+pub struct Brave;
+
+impl Browser for Brave {
+    fn name() -> &'static str {
+        "Brave"
     }
 
-    Ok(())
-}
+    fn installations() -> Vec<Installation> {
+        installations()
+    }
 
+    fn debloat(installation: &Installation) -> color_eyre::Result<()> {
+        for data_folder in &installation.data_folders {
+            if let Err(why) = debloat_data_folder(data_folder) {
+                warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
+            } else {
+                debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
+            }
+        }
+
+        Ok(())
+    }
+}
 
 fn debloat_data_folder(data_folder: &Path) -> color_eyre::Result<()> {
     let local_state = local_state::get_local_state(data_folder)?;

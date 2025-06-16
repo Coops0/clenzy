@@ -1,21 +1,24 @@
 mod archive;
 mod brave;
+mod browser;
 mod browser_profile;
-mod browsers;
 mod firefox;
 mod firefox_common;
+mod installation;
 mod logging;
 mod util;
 mod zen;
 
+use crate::util::RenderedBrowser;
 use crate::{
-    browsers::Installation, logging::{setup_logging, success}, util::{check_and_fetch_resources, check_if_running}
+    brave::Brave, browser::Browser, firefox::Firefox, installation::Installation, logging::{setup_logging, success}, util::{check_if_running}, zen::Zen
 };
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{env, sync::OnceLock};
+use std::{env, mem, sync::OnceLock};
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
+use crate::util::start_fetch_resource;
 
 #[derive(Parser, Default)]
 #[command(version)]
@@ -48,28 +51,35 @@ pub struct Args {
 pub static ARGS: OnceLock<Args> = OnceLock::new();
 
 fn main() -> color_eyre::Result<()> {
-    unsafe {
-        // There's no better way to enable backtraces programmatically
-        env::set_var("RUST_BACKTRACE", "1");
+    if cfg!(debug_assertions) {
+        unsafe {
+            // There's no better way to enable backtraces programmatically
+            env::set_var("RUST_BACKTRACE", "1");
+        }
     }
 
     let args = ARGS.get_or_init(Args::parse);
 
     setup_logging(args)?;
 
-    let installations = brave::installations()
-        .into_iter()
-        .chain(firefox::installations())
-        .chain(zen::installations());
+    let mut browsers = render_browsers!(Firefox, Brave, Zen);
 
-    let installations = installations.filter(Installation::is_valid).collect::<Vec<_>>();
+    let installations = browsers
+        .iter_mut()
+        .flat_map(|browser| mem::take(&mut browser.installations))
+        .filter(Installation::is_valid)
+        .collect::<Vec<_>>();
+
     if installations.is_empty() {
         no_browsers_msg();
         return Ok(());
     }
 
-    // Fetches Firefox and Zen user.js scripts immediately
-    check_and_fetch_resources(&installations);
+    for browser in browsers {
+        if let Some(fetch_resources) = browser.fetch_resources {
+            start_fetch_resource(fetch_resources, browser.name);
+        }
+    }
 
     let browsers_len = installations.len();
     let installations = if args.auto_confirm {
@@ -88,14 +98,14 @@ fn main() -> color_eyre::Result<()> {
     let mut system = System::new();
 
     for installation in installations {
-        let span = debug_span!("debloat", browser = %installation.browser);
+        let span = debug_span!("debloat", browser = %installation.browser_name);
         let _enter = span.enter();
 
-        check_if_running(&mut system, installation.browser);
+        check_if_running(&mut system, installation.browser_name);
 
         match installation.debloat() {
-            Ok(()) => success(&format!("Finished debloating {}", installation.browser)),
-            Err(why) => warn!(err = %why, "Failed to debloat {}", installation.browser)
+            Ok(()) => success(&format!("Finished debloating {}", installation.browser_name)),
+            Err(why) => warn!(err = %why, "Failed to debloat {}", installation.browser_name)
         }
     }
 

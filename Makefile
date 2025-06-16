@@ -8,9 +8,7 @@ X86_64_UNKNOWN_LINUX_GNU := x86_64-unknown-linux-gnu
 AARCH64_UNKNOWN_LINUX_GNU := aarch64-unknown-linux-gnu
 
 .PHONY: all
-all:
-	rm -rf $(DIST_DIR)
-	build-all
+all: clean build-all
 
 .PHONY: setup
 setup:
@@ -52,5 +50,4 @@ build-all: aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-gnu x86_64
 
 .PHONY: clean
 clean:
-	cargo clean
 	rm -rf $(DIST_DIR)

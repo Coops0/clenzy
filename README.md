@@ -47,7 +47,7 @@ Quickly disable AI, tracking, crypto, and other garbage features from some brows
 
 - **Opinionated Defaults** - Pre-configured settings for a clean experience
 - **Automatic Backup Creation** - Safely restore if needed
-- **Vertical Tabs** - Enabled by default (disable with `-V` flag)
+- **Vertical Tabs** - Enabled by default (disable with `--no-vertical-tabs` flag)
 - **Automatic** - Use auto confirmation flag (`-Y`) for script automation
 - **Betterfox.js** - For Firefox & Zen: Fetches & installs the latest Betterfox.js with extra tweaks
 
@@ -61,26 +61,27 @@ Modern browsers come loaded with:
 - Bloat
 
 These not only slow down your browsing experience but also compromise your privacy. I got tired of spending 30 minutes
-everytime I installed a browser to disable features and configure individual flags.
+every time I installed a browser to disable features and configure individual flags.
 
-## ❓Will you support my favorite browser?
+## ❓Will you support X browser?
 
 #### I am open to new browsers, open an issue, but I will not add support for:
 
 - Google Chrome, Edge, Opera (including GX): They are too far gone, and whoever uses them most likely doesn't care about
   their privacy.
 - Vivaldi: I don't like it, and with all its "features", it's very subjective to configure.
-- Any already light browser: Safari, Arc, Waterfox, Librewolf, Pale Moon, Orion, Tor, Floorp(?), Cromite, Bromite, Thorium,
-  Ungoogled Chromium
 - ANY AI browser: Dia
 
 ## 🧩 Recommendations
 
 ### Browsers
 
-- Windows: Librewolf, Firefox, Brave
-- Linux: Librewolf, Firefox, Brave<!--, Orion (in the future)-->
-- macOS: Orion, Librewolf, Firefox, Safari<br>
+- Windows: Firefox, Brave
+- Linux: Firefox, Brave<!--, Orion (in the future)-->
+- macOS: Orion, Firefox, Safari<br>
+
+<sub>You can substitute Firefox with Librewolf if you are more privacy conscious, but it is less convenient for everyday
+use.</sub>
 
 ### Search Engines
 

@@ -1,13 +1,13 @@
 use std::path::Path;
-use crate::{browser_profile::BrowserProfile, browsers::Installation, util::select_profiles, ARGS};
+use crate::{browser_profile::BrowserProfile, util::select_profiles, ARGS};
 use tracing::{debug, debug_span, warn};
+use crate::browser::Browser;
 
 mod backup;
 mod profiles;
 mod user_js;
 
-pub fn debloat(
-    installation: &Installation,
+pub fn debloat<B: Browser>(
     data_folder: &Path,
     user_js: &str,
     additional_snippets: &str
@@ -20,7 +20,7 @@ pub fn debloat(
     }
 
     let profiles =
-        select_profiles(profiles, &(0..defaults).collect::<Vec<_>>(), installation.browser);
+        select_profiles::<_, B>(profiles, &(0..defaults).collect::<Vec<_>>());
     if profiles.is_empty() {
         return Ok(Vec::new());
     }

@@ -1,13 +1,10 @@
-use crate::{
-    browsers::{Browser, Installation}, firefox, zen, ARGS
-};
+use crate::{browser::Browser, installation::Installation, ARGS};
 use color_eyre::eyre::Context;
 use inquire::error::InquireResult;
 use serde_json::{Map, Value};
 use std::{
-    fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
+    collections::HashSet, fmt::Display, fs, io::{stdin, Read}, path::{Path, PathBuf}, process
 };
-use std::collections::HashSet;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, debug_span, info, warn};
 
@@ -35,13 +32,13 @@ pub fn roaming_data_base() -> Option<PathBuf> {
         dirs::data_dir()
     } else {
         dirs::home_dir()
-    } 
+    }
 }
 
 pub fn local_data_base() -> Option<PathBuf> {
     if cfg!(any(target_os = "macos", target_os = "windows")) {
         dirs::data_local_dir()
-    } else{
+    } else {
         dirs::config_local_dir()
     }
 }
@@ -54,9 +51,9 @@ pub fn local_app_bases() -> impl Iterator<Item = PathBuf> {
         ]
     } else if cfg!(target_os = "macos") {
         vec![Some(PathBuf::from("/Applications")), dirs::home_dir().map(|p| p.join("Applications"))]
-    } else  {
+    } else {
         vec![Some(PathBuf::from("/").join("opt"))]
-    } 
+    }
     .into_iter()
     .flatten()
 }
@@ -122,22 +119,21 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
     true
 }
 
-pub fn select_profiles<P: Display>(
-    mut profiles: Vec<P>,
-    selected: &[usize],
-    browser: Browser
-) -> Vec<P> {
+pub fn select_profiles<P: Display, B: Browser>(mut profiles: Vec<P>, selected: &[usize]) -> Vec<P> {
     if ARGS.get().unwrap().auto_confirm {
         profiles
     } else if profiles.len() == 1 {
         vec![profiles.remove(0)]
     } else {
-        inquire::MultiSelect::new(&format!("Which profiles to debloat for {browser}?"), profiles)
-            .with_default(selected)
-            .prompt()
-            .unwrap_or_exit()
-            .into_iter()
-            .collect::<Vec<_>>()
+        inquire::MultiSelect::new(
+            &format!("Which profiles to debloat for {}?", B::name()),
+            profiles
+        )
+        .with_default(selected)
+        .prompt()
+        .unwrap_or_exit()
+        .into_iter()
+        .collect::<Vec<_>>()
     }
 }
 
@@ -159,12 +155,12 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
     running_instances.into_iter().collect::<Vec<_>>().join(", ")
 }
 
-pub fn check_if_running(system: &mut System, browser: Browser) {
+pub fn check_if_running(system: &mut System, browser_name: &str) {
     if ARGS.get().unwrap().auto_confirm {
         return;
     }
 
-    let processes = get_matching_running_processes(system, format!("{browser}").as_str());
+    let processes = get_matching_running_processes(system, browser_name);
     if processes.is_empty() {
         return;
     }
@@ -176,7 +172,7 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
         process::exit(1);
     }
 
-    let processes = get_matching_running_processes(system, format!("{browser}").as_str());
+    let processes = get_matching_running_processes(system, browser_name);
     if processes.is_empty() {
         return;
     }
@@ -189,26 +185,17 @@ pub fn check_if_running(system: &mut System, browser: Browser) {
     }
 }
 
-pub fn check_and_fetch_resources(browsers: &[Installation]) {
-    if browsers.iter().any(|b| b.browser == Browser::Firefox) {
-        start_fetch_resource("Betterfox User.js", firefox::resource::get_better_fox_user_js);
-    }
-    if browsers.iter().any(|b| b.browser == Browser::Zen) {
-        start_fetch_resource("Betterfox Zen user.js", zen::resource::get_better_zen_user_js);
-    }
-}
-
-fn start_fetch_resource<F, O>(name: &'static str, f: F)
+pub fn start_fetch_resource<F, O>(f: F, browser_name: &'static str)
 where
     F: Fn() -> color_eyre::Result<O> + Send + 'static
 {
     std::thread::spawn(move || {
-        let span = debug_span!("fetching resource", name);
+        let span = debug_span!("fetching resources for", name = %browser_name);
         let _enter = span.enter();
 
         match f() {
-            Ok(_) => debug!("Fetched resource"),
-            Err(why) => warn!(err = ?why, "Failed to fetch resource")
+            Ok(_) => debug!("Fetched resources"),
+            Err(why) => warn!(err = ?why, "Failed to fetch resources")
         }
     });
 }
@@ -232,4 +219,23 @@ macro_rules! s {
     ($s:expr) => {
         String::from($s)
     };
+}
+
+pub struct RenderedBrowser {
+    pub installations: Vec<Installation>,
+    pub fetch_resources: Option<fn() -> color_eyre::Result<&'static str>>,
+    pub name: &'static str
+}
+
+#[macro_export]
+macro_rules! render_browsers {
+    ($($browser:ty),+) => {{
+        vec![$(
+            $crate::RenderedBrowser {
+                installations: <$browser>::installations(),
+                fetch_resources: <$browser>::fetch_resources(),
+                name: <$browser>::name()
+            },
+        )+]
+    }};
 }
