@@ -80,7 +80,7 @@ fn generate_policies() -> serde_json::Result<String> {
     // `always` means the bookmarks toolbar is always shown.
     // `never` means the bookmarks toolbar is not shown.
     // `newtab` means the bookmarks toolbar is only shown on the new tab page.
-    policies.insert(s!("DisplayBookmarksToolbar"), json!(s!("newtab")));
+    policies.insert(s!("DisplayBookmarksToolbar"), json!("newtab"));
     // Don’t check if Firefox is the default browser at startup.
     policies.insert(s!("DontCheckDefaultBrowser"), json!(true));
     // Customize the Firefox Home page.
