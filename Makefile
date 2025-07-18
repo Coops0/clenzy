@@ -23,12 +23,12 @@ $(DIST_DIR):
 .PHONY: aarch64-apple-darwin
 aarch64-apple-darwin: $(DIST_DIR)
 	cargo +nightly build --release --target $(AARCH64_APPLE_DARWIN)
-	cp -f target/$(AARCH64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-arm64
+	cp -f target/$(AARCH64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-macos-arm64
 
 .PHONY: x86_64-apple-darwin
 x86_64-apple-darwin: $(DIST_DIR)
 	cargo +nightly build --release --target $(X86_64_APPLE_DARWIN)
-	cp -f target/$(X86_64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-darwin-x86_64
+	cp -f target/$(X86_64_APPLE_DARWIN)/release/$(BINARY_NAME) $(DIST_DIR)/$(BINARY_NAME)-macos-x86_64
 
 .PHONY: x86_64-pc-windows-gnu
 x86_64-pc-windows-gnu: $(DIST_DIR)
