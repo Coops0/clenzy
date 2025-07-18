@@ -10,7 +10,8 @@ pub enum InstalledVia {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Variant {
-    Nightly
+    Nightly,
+    Beta
 }
 
 #[derive(Clone, Debug)]
@@ -132,7 +133,8 @@ impl Display for InstalledVia {
 impl Display for Variant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Nightly => write!(f, "Nightly")
+            Self::Nightly => write!(f, "Nightly"),
+            Self::Beta => write!(f, "Beta"),
         }
     }
 }

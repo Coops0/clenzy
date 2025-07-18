@@ -33,6 +33,15 @@ fn local_nightly() -> Option<PathBuf> {
     Some(ret)
 }
 
+fn local_beta() -> Option<PathBuf> {
+    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Beta");
+    if cfg!(target_os = "windows") {
+        ret = ret.join("User Data");
+    }
+
+    Some(ret)
+}
+
 fn local_nightly_apps() -> Vec<PathBuf> {
     let bases = local_app_bases();
     if cfg!(target_os = "windows") {
@@ -43,6 +52,20 @@ fn local_nightly_apps() -> Vec<PathBuf> {
         bases.map(|f| f.join("Brave Browser Nightly.app").join("Contents")).collect()
     } else {
         // https://brave.com/linux/
+        // FIXME
+        Vec::new()
+    }
+}
+
+fn local_beta_apps() -> Vec<PathBuf> {
+    let bases = local_app_bases();
+    if cfg!(target_os = "windows") {
+        bases
+            .map(|f| f.join("BraveSoftware").join("Brave-Browser-Beta").join("Application"))
+            .collect()
+    } else if cfg!(target_os = "macos") {
+        bases.map(|f| f.join("Brave Browser Beta.app").join("Contents")).collect()
+    } else {
         // FIXME
         Vec::new()
     }
@@ -98,6 +121,14 @@ pub fn installations() -> Vec<Installation> {
         Installation::builder::<Brave>()
             .data_folder(local())
             .app_folders(local_apps())
+            .build()
+    );
+
+    ret.push(
+        Installation::builder::<Brave>()
+            .variant(Variant::Beta)
+            .data_folder(local_beta())
+            .app_folders(local_beta_apps())
             .build()
     );
 
