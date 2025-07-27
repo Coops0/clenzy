@@ -1,11 +1,7 @@
 # Todo
 
-- if not launched in terminal, open one
-- rename darwin binaries to macos & intel/silicon
-- does doing path/two work on window instead of join?
 - detect if ublock origin isn't installed, if not, offer to open it in the target browser with the correct
   extension store
-- firefox still showing whatsnew page on update
 - keep populating executable paths
 
 ### Other Browsers
