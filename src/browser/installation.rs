@@ -15,7 +15,6 @@ pub enum Variant {
 }
 
 #[derive(Clone, Debug)]
-#[allow(clippy::struct_field_names)]
 pub struct Installation {
     // TODO see which we can make private & remove clippy allow
     pub browser_name: &'static str,

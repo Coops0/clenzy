@@ -1,11 +1,10 @@
 use std::path::Path;
-use crate::{
-    browser_profile::BrowserProfile, util::{select_profiles, validate_profile_dir}
-};
+use crate::util::{select_profiles, validate_profile_dir};
 use color_eyre::eyre::{bail, ContextCompat};
 use serde_json::{Map, Value};
 use tracing::debug;
 use crate::brave::Brave;
+use crate::browser::profile::BrowserProfile;
 
 pub fn try_to_get_profiles(
     data_folder: &Path,

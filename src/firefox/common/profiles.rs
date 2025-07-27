@@ -1,8 +1,9 @@
-use crate::{browser_profile::BrowserProfile, util::validate_profile_dir};
+use crate::util::validate_profile_dir;
 use color_eyre::eyre::WrapErr;
 use ini::Ini;
 use std::{fs, path::Path};
 use tracing::debug;
+use crate::browser::profile::BrowserProfile;
 
 // Returns the number of default profiles and a vector of all profiles
 pub fn get_profiles(path: &Path) -> color_eyre::Result<(usize, Vec<BrowserProfile>)> {

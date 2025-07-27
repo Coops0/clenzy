@@ -1,11 +1,11 @@
 use crate::{
-    installation::{Installation, InstalledVia, Variant}, util::{flatpak_base, local_app_bases, local_data_base, local_snap_base}
+    brave::Brave, util::{flatpak_base, local_app_bases, local_data_base, local_snap_base}
 };
 use std::path::PathBuf;
-use crate::brave::Brave;
+use crate::browser::installation::{Installation, InstalledVia, Variant};
 
 fn local() -> Option<PathBuf> {
-    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser");
+    let mut ret = local_data_base()?.join("BraveSoftware/Brave-Browser");
     if cfg!(target_os = "windows") {
         ret = ret.join("User Data");
     }
@@ -16,16 +16,16 @@ fn local() -> Option<PathBuf> {
 fn local_apps() -> Vec<PathBuf> {
     let bases = local_app_bases();
     if cfg!(target_os = "windows") {
-        bases.map(|f| f.join("BraveSoftware").join("Brave-Browser").join("Application")).collect()
+        bases.map(|f| f.join("BraveSoftware/Brave-Browser/Application")).collect()
     } else if cfg!(target_os = "macos") {
-        bases.map(|f| f.join("Brave Browser.app").join("Contents")).collect()
+        bases.map(|f| f.join("Brave Browser.app/Contents")).collect()
     } else {
-        bases.map(|f| f.join("brave.com").join("brave").join("brave-browser")).collect()
-    } 
+        bases.map(|f| f.join("brave.com/brave/brave-browser")).collect()
+    }
 }
 
 fn local_nightly() -> Option<PathBuf> {
-    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Nightly");
+    let mut ret = local_data_base()?.join("BraveSoftware/Brave-Browser-Nightly");
     if cfg!(target_os = "windows") {
         ret = ret.join("User Data");
     }
@@ -34,7 +34,7 @@ fn local_nightly() -> Option<PathBuf> {
 }
 
 fn local_beta() -> Option<PathBuf> {
-    let mut ret = local_data_base()?.join("BraveSoftware").join("Brave-Browser-Beta");
+    let mut ret = local_data_base()?.join("BraveSoftware/Brave-Browser-Beta");
     if cfg!(target_os = "windows") {
         ret = ret.join("User Data");
     }
@@ -45,11 +45,9 @@ fn local_beta() -> Option<PathBuf> {
 fn local_nightly_apps() -> Vec<PathBuf> {
     let bases = local_app_bases();
     if cfg!(target_os = "windows") {
-        bases
-            .map(|f| f.join("BraveSoftware").join("Brave-Browser-Nightly").join("Application"))
-            .collect()
+        bases.map(|f| f.join("BraveSoftware/Brave-Browser-Nightly/Application")).collect()
     } else if cfg!(target_os = "macos") {
-        bases.map(|f| f.join("Brave Browser Nightly.app").join("Contents")).collect()
+        bases.map(|f| f.join("Brave Browser Nightly.app/Contents")).collect()
     } else {
         // https://brave.com/linux/
         // FIXME
@@ -60,11 +58,9 @@ fn local_nightly_apps() -> Vec<PathBuf> {
 fn local_beta_apps() -> Vec<PathBuf> {
     let bases = local_app_bases();
     if cfg!(target_os = "windows") {
-        bases
-            .map(|f| f.join("BraveSoftware").join("Brave-Browser-Beta").join("Application"))
-            .collect()
+        bases.map(|f| f.join("BraveSoftware/Brave-Browser-Beta/Application")).collect()
     } else if cfg!(target_os = "macos") {
-        bases.map(|f| f.join("Brave Browser Beta.app").join("Contents")).collect()
+        bases.map(|f| f.join("Brave Browser Beta.app/Contents")).collect()
     } else {
         // FIXME
         Vec::new()
@@ -72,56 +68,25 @@ fn local_beta_apps() -> Vec<PathBuf> {
 }
 
 fn snap() -> Option<PathBuf> {
-    Some(
-        local_snap_base()?
-            .join("brave")
-            .join("current")
-            .join(".config")
-            .join("BraveSoftware")
-            .join("Brave-Browser")
-    )
+    Some(local_snap_base()?.join("brave/current/.config/BraveSoftware/Brave-Browser"))
 }
 
 fn snap_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("snap")
-        .join("brave")
-        .join("current")
-        .join("opt")
-        .join("brave.com")
-        .join("brave")
+    PathBuf::from("/snap/brave/current/opt/brave.com/brave")
 }
 
 fn flatpak() -> Option<PathBuf> {
-    Some(
-        flatpak_base()?
-            .join("com.brave.Browser")
-            .join("config")
-            .join("BraveSoftware")
-            .join("Brave-Browser")
-    )
+    Some(flatpak_base()?.join("com.brave.Browser/config/BraveSoftware/Brave-Browser"))
 }
 
 fn flatpak_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("var")
-        .join("lib")
-        .join("flatpak")
-        .join("app")
-        .join("com.brave.Browser")
-        .join("current")
-        .join("active")
-        .join("files")
-        .join("brave")
+    PathBuf::from("/var/lib/flatpak/app/com.brave.Browser/current/active/files/brave")
 }
 
 pub fn installations() -> Vec<Installation> {
     let mut ret = Vec::with_capacity(4);
     ret.push(
-        Installation::builder::<Brave>()
-            .data_folder(local())
-            .app_folders(local_apps())
-            .build()
+        Installation::builder::<Brave>().data_folder(local()).app_folders(local_apps()).build()
     );
 
     ret.push(

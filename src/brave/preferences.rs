@@ -1,8 +1,9 @@
-use crate::{logging::success, s, util::{get_or_insert_obj, timestamp}, ARGS};
+use crate::{s, util::{get_or_insert_obj, timestamp}, ARGS};
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Value};
 use std::{fs, path::Path};
 use tracing::debug;
+use crate::util::logging::success;
 
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 pub fn preferences(root: &Path) -> color_eyre::Result<()> {

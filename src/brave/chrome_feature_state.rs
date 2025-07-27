@@ -1,11 +1,12 @@
 use crate::{brave::{
     resources, resources::{DISABLED_FEATURES, REMOVE_ENABLED_FEATURES}
-}, logging::success, s, util::timestamp, ARGS};
+}, s, util::timestamp, ARGS};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use resources::replace_symbols;
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
 use tracing::{debug, warn};
+use crate::util::logging::success;
 
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("ChromeFeatureState");

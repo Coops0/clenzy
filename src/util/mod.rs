@@ -1,4 +1,4 @@
-use crate::{browser::Browser, installation::Installation, ARGS};
+use crate::{browser::Browser, ARGS};
 use color_eyre::eyre::Context;
 use inquire::error::InquireResult;
 use serde_json::{Map, Value};
@@ -7,6 +7,10 @@ use std::{
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 use tracing::{debug, debug_span, info, warn};
+use crate::browser::installation::Installation;
+
+pub mod archive;
+pub mod logging;
 
 pub fn get_or_insert_obj<'a>(
     map: &'a mut Map<String, Value>,
@@ -15,7 +19,7 @@ pub fn get_or_insert_obj<'a>(
     let ret = map
         .entry(key.to_owned())
         .or_insert_with(|| {
-            debug!("Inserting");
+            debug!("Inserting {key}");
             Value::Object(serde_json::Map::new())
         })
         .as_object_mut();
@@ -52,10 +56,10 @@ pub fn local_app_bases() -> impl Iterator<Item = PathBuf> {
     } else if cfg!(target_os = "macos") {
         vec![Some(PathBuf::from("/Applications")), dirs::home_dir().map(|p| p.join("Applications"))]
     } else {
-        vec![Some(PathBuf::from("/").join("opt"))]
+        vec![Some(PathBuf::from("/opt"))]
     }
-    .into_iter()
-    .flatten()
+        .into_iter()
+        .flatten()
 }
 
 #[rustfmt::skip]
@@ -70,7 +74,7 @@ pub fn local_snap_base() -> Option<PathBuf> {
 #[rustfmt::skip]
 pub fn flatpak_base() -> Option<PathBuf> {
     if cfg!(target_os = "linux") {
-        dirs::home_dir().map(|p| p.join(".var").join("app"))
+        dirs::home_dir().map(|p| p.join(".var/app"))
     } else {
         None
     }
@@ -129,11 +133,11 @@ pub fn select_profiles<P: Display, B: Browser>(mut profiles: Vec<P>, selected: &
             &format!("Which profiles to debloat for {}?", B::name()),
             profiles
         )
-        .with_default(selected)
-        .prompt()
-        .unwrap_or_exit()
-        .into_iter()
-        .collect::<Vec<_>>()
+            .with_default(selected)
+            .prompt()
+            .unwrap_or_exit()
+            .into_iter()
+            .collect::<Vec<_>>()
     }
 }
 

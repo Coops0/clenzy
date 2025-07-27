@@ -1,8 +1,8 @@
 use crate::{
-    installation::{Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
+    util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}, zen::Zen
 };
 use std::path::PathBuf;
-use crate::zen::Zen;
+use crate::browser::installation::{Installation, InstalledVia};
 
 fn local() -> Vec<PathBuf> {
     let mut ret = Vec::with_capacity(3);
@@ -32,41 +32,26 @@ fn local_apps() -> Vec<PathBuf> {
 
     let bases = local_app_bases();
     if cfg!(target_os = "macos") {
-        bases.map(|f| f.join("Zen Browser.app").join("Contents")).collect()
+        bases.map(|f| f.join("Zen Browser.app/Contents")).collect()
     } else {
         Vec::new()
     }
 }
 
 fn snap() -> Option<PathBuf> {
-    Some(local_snap_base()?.join("0xgingi-zen-browser").join("common").join(".zen"))
+    Some(local_snap_base()?.join("0xgingi-zen-browser/common/.zen"))
 }
 
 fn snap_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("snap")
-        .join("0xgingi-zen-browser")
-        .join("current")
-        .join("usr")
-        .join("lib")
-        .join("zen")
+    PathBuf::from("/snap/0xgingi-zen-browser/current/usr/lib/zen")
 }
 
 fn flatpak() -> Option<PathBuf> {
-    Some(flatpak_base()?.join("app.zen_browser.zen").join(".zen"))
+    Some(flatpak_base()?.join("app.zen_browser.zen/.zen"))
 }
 
 fn flatpak_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("var")
-        .join("lib")
-        .join("flatpak")
-        .join("app")
-        .join("app.zen_browser.zen")
-        .join("current")
-        .join("active")
-        .join("files")
-        .join("zen")
+    PathBuf::from("/var/lib/flatpak/app/app.zen_browser.zen/current/active/files/zen")
 }
 
 pub fn installations() -> Vec<Installation> {

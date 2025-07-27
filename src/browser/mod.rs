@@ -1,4 +1,7 @@
-use crate::installation::Installation;
+use crate::browser::installation::Installation;
+
+pub mod profile;
+pub mod installation;
 
 pub trait Browser {
     fn name() -> &'static str;

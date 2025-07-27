@@ -1,7 +1,8 @@
 use std::path::Path;
-use crate::{browser_profile::BrowserProfile, util::select_profiles, ARGS};
+use crate::{util::select_profiles, ARGS};
 use tracing::{debug, debug_span, warn};
 use crate::browser::Browser;
+use crate::browser::profile::BrowserProfile;
 
 mod backup;
 mod profiles;

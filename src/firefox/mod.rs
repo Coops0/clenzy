@@ -2,13 +2,16 @@ mod installations;
 mod policies;
 pub mod resource;
 mod xulstore;
+pub mod common;
 
 use crate::{
-    browser::Browser, browser_profile::BrowserProfile, firefox_common, installation::Installation, ARGS
+    browser::Browser, ARGS
 };
 use installations::installations;
 use std::path::Path;
 use tracing::{debug, debug_span, warn};
+use crate::browser::installation::Installation;
+use crate::browser::profile::BrowserProfile;
 
 pub struct Firefox;
 
@@ -69,7 +72,7 @@ fn debloat_profile(
     data_folder: &Path,
     custom_overrides: &[&str]
 ) -> color_eyre::Result<Vec<BrowserProfile>> {
-    let profiles = firefox_common::debloat::<Firefox>(
+    let profiles = common::debloat::<Firefox>(
         data_folder,
         resource::get_better_fox_user_js()?,
         &custom_overrides.join("\n")

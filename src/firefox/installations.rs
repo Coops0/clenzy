@@ -1,7 +1,6 @@
-use crate::{
-    installation::{Installation, InstalledVia}, util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base}
-};
+use crate::util::{flatpak_base, local_app_bases, local_snap_base, roaming_data_base};
 use std::path::PathBuf;
+use crate::browser::installation::{Installation, InstalledVia};
 use crate::firefox::Firefox;
 
 fn local() -> Vec<PathBuf> {
@@ -14,14 +13,14 @@ fn local() -> Vec<PathBuf> {
         }
 
         if let Some(lb) = dirs::data_local_dir() {
-            ret.push(lb.join("Mozilla").join("Firefox"));
+            ret.push(lb.join("Mozilla/Firefox"));
         }
     } else if cfg!(target_os = "windows") {
         if let Some(rb) = roaming_base {
-            ret.push(rb.join("Mozilla").join("Firefox"));
+            ret.push(rb.join("Mozilla/Firefox"));
         }
     } else if let Some(rb) = roaming_base {
-        ret.push(rb.join(".mozilla").join("firefox"));
+        ret.push(rb.join(".mozilla/firefox"));
     }
 
     ret
@@ -55,35 +54,19 @@ fn local_apps() -> Vec<PathBuf> {
 }
 
 fn snap() -> Option<PathBuf> {
-    Some(local_snap_base()?.join("firefox").join("common").join(".mozilla").join("firefox"))
+    Some(local_snap_base()?.join("firefox/common/.mozilla/firefox"))
 }
 
 fn snap_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("snap")
-        .join("firefox")
-        .join("current")
-        .join("usr")
-        .join("lib")
-        .join("firefox")
+    PathBuf::from("/snap/firefox/current/usr/lib/firefox")
 }
 
 fn flatpak() -> Option<PathBuf> {
-    Some(flatpak_base()?.join("org.mozilla.firefox").join(".mozilla").join("firefox"))
+    Some(flatpak_base()?.join("org.mozilla.firefox/.mozilla/firefox"))
 }
 
 fn flatpak_app() -> PathBuf {
-    PathBuf::from("/")
-        .join("var")
-        .join("lib")
-        .join("flatpak")
-        .join("app")
-        .join("org.mozilla.firefox")
-        .join("current")
-        .join("active")
-        .join("files")
-        .join("lib")
-        .join("firefox")
+    PathBuf::from("/var/lib/flatpak/app/org.mozilla.firefox/current/active/files/lib/firefox")
 }
 
 pub fn installations() -> Vec<Installation> {

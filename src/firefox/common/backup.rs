@@ -1,13 +1,14 @@
-use crate::{
-    archive::add_to_archive, browser_profile::BrowserProfile, logging::success, util::timestamp
-};
+use crate::util::timestamp;
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, fs::File, path::Path, sync::LazyLock};
 use tracing::{debug, warn};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
+use crate::browser::profile::BrowserProfile;
+use crate::util::archive::add_to_archive;
+use crate::util::logging::success;
 
 static DEFAULT_FIREFOX_SKIP: LazyLock<Vec<&str>> = LazyLock::new(|| {
-    include_str!("../../snippets/firefox_common/skipped_files").lines().filter(|l| !l.is_empty()).collect()
+    include_str!("../../../snippets/firefox_common/skipped_files").lines().filter(|l| !l.is_empty()).collect()
 });
 
 pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {

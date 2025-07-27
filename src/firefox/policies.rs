@@ -1,4 +1,4 @@
-use crate::{s, util::UnwrapOrExit, ARGS};
+use crate::{ARGS, s, util::UnwrapOrExit};
 use color_eyre::eyre::Context;
 use serde_json::json;
 use std::{fs, path::Path};
@@ -8,11 +8,8 @@ pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
-        installation_folder
-            .join("Firefox.app")
-            .join("Contents")
-            .join("Resources")
-            .join("distribution")
+        installation_folder.join("Firefox.app/Contents/Resources/distribution"
+        )
     } else {
         // Same for windows and linux
         installation_folder.join("distribution")

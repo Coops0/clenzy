@@ -1,9 +1,10 @@
 mod installations;
 pub mod resource;
 
-use crate::{browser::Browser, firefox_common, installation::Installation, ARGS};
+use crate::{browser::Browser, firefox, ARGS};
 use installations::installations;
 use tracing::{debug, warn};
+use crate::browser::installation::Installation;
 
 pub struct Zen;
 
@@ -34,7 +35,7 @@ pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
 
     let mut found_profile = false;
     for data_folder in &installation.data_folders {
-        match firefox_common::debloat::<Zen>(
+        match firefox::common::debloat::<Zen>(
             data_folder,
             resource::get_better_zen_user_js()?,
             &custom_overrides.join("\n")

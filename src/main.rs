@@ -1,24 +1,20 @@
-mod archive;
 mod brave;
 mod browser;
-mod browser_profile;
 mod firefox;
-mod firefox_common;
-mod installation;
-mod logging;
-mod util;
 mod zen;
+mod util;
 
-use crate::util::RenderedBrowser;
+use crate::util::{check_if_running, start_fetch_resource, RenderedBrowser};
 use crate::{
-    brave::Brave, browser::Browser, firefox::Firefox, installation::Installation, logging::{setup_logging, success}, util::{check_if_running}, zen::Zen
+    brave::Brave, browser::Browser, firefox::Firefox, zen::Zen
 };
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{env, mem, sync::OnceLock};
+use std::{env, sync::OnceLock};
+use std::sync::LazyLock;
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
-use crate::util::start_fetch_resource;
+use util::logging::{setup_logging, success};
 
 #[derive(Parser, Default)]
 #[command(version)]
@@ -43,12 +39,13 @@ pub struct Args {
     #[clap(long = "no-search-suggestions", action = ArgAction::SetFalse, default_value_t = true)]
     pub search_suggestions: bool,
 
-    /// Enable creating policy files for Firefox (as of now)
+    /// Enable creating policy files, for Firefox only right now
     #[clap(long = "create-policies", short = 'P', default_value_t = false)]
     pub create_policies: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
+pub static BROWSERS: LazyLock<Vec<RenderedBrowser>> = LazyLock::new(|| render_browsers!(Firefox, Brave, Zen));
 
 fn main() -> color_eyre::Result<()> {
     if cfg!(debug_assertions) {
@@ -62,12 +59,10 @@ fn main() -> color_eyre::Result<()> {
 
     setup_logging(args)?;
 
-    let mut browsers = render_browsers!(Firefox, Brave, Zen);
-
-    let installations = browsers
-        .iter_mut()
-        .flat_map(|browser| mem::take(&mut browser.installations))
-        .filter(Installation::is_valid)
+    let installations = BROWSERS
+        .iter()
+        .flat_map(|browser| &browser.installations)
+        .filter(|installation| installation.is_valid())
         .collect::<Vec<_>>();
 
     if installations.is_empty() {
@@ -75,7 +70,7 @@ fn main() -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    for browser in browsers {
+    for browser in &*BROWSERS {
         if let Some(fetch_resources) = browser.fetch_resources {
             start_fetch_resource(fetch_resources, browser.name);
         }
@@ -115,14 +110,18 @@ fn main() -> color_eyre::Result<()> {
 
 fn no_browsers_msg() {
     info!("No supported browsers found on your computer.");
-    // let supported = browsers.iter().map(|b| b.name).collect::<Vec<_>>().join(", ");
-    // info!("The list of supported browsers is: {supported}.");
+    let supported = BROWSERS.iter()
+        .flat_map(|browser| &browser.installations)
+        .map(|installation| format!("{installation}"))
+        .collect::<Vec<_>>()
+        .join(", ");
 
+    info!("Supported browsers: {supported}");
     if cfg!(not(any(target_os = "windows", target_os = "macos"))) {
         warn!("You may have an unsupported OS ({}).", env::consts::OS);
     }
 
     info!(
-        "If you have any of these installed, please open an issue at https://github.com/Coops0/clenzy/issues"
+        "If you DO have any of these installed, please open an issue at https://github.com/Coops0/clenzy/issues"
     );
 }
