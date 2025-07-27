@@ -3,13 +3,14 @@ use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Value};
 use std::{fs, path::Path};
 use tracing::debug;
+use crate::util::args;
 use crate::util::logging::success;
 
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     let path = root.join("Preferences");
 
-    if ARGS.get().unwrap().backup {
+    if args().backup {
         let backup = root.join(format!("Preferences-{}", timestamp())).with_extension("bak");
 
         fs::copy(&path, &backup)?;
@@ -42,7 +43,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
 
     brave.insert(s!("always_show_bookmark_bar_on_ntp"), json!(true));
 
-    brave.insert(s!("autocomplete_enabled"), json!(ARGS.get().unwrap().search_suggestions));
+    brave.insert(s!("autocomplete_enabled"), json!(args().search_suggestions));
 
     if let Some(brave_ads) = get_or_insert_obj(brave, "brave_ads") {
         brave_ads.insert(s!("should_allow_ads_subdivision_targeting"), json!(false));
@@ -109,7 +110,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
         sidebar.insert(s!("sidebar_show_option"), json!(3));
     }
 
-    if ARGS.get().unwrap().vertical_tabs
+    if args().vertical_tabs
         && let Some(tabs) = get_or_insert_obj(brave, "tabs")
     {
         tabs.insert(s!("vertical_tabs_collapsed"), json!(false));
@@ -177,7 +178,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     }
 
     if let Some(search) = get_or_insert_obj(&mut prefs, "search") {
-        search.insert(s!("suggest_enabled"), json!(ARGS.get().unwrap().search_suggestions));
+        search.insert(s!("suggest_enabled"), json!(args().search_suggestions));
     }
 
     if let Some(privacy_sandbox) = get_or_insert_obj(&mut prefs, "privacy_sandbox") {

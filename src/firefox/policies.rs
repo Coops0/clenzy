@@ -3,13 +3,13 @@ use color_eyre::eyre::Context;
 use serde_json::json;
 use std::{fs, path::Path};
 use tracing::debug;
+use crate::util::args;
 
 pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()> {
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
-        installation_folder.join("Firefox.app/Contents/Resources/distribution"
-        )
+        installation_folder.join("Firefox.app/Contents/Resources/distribution")
     } else {
         // Same for windows and linux
         installation_folder.join("distribution")
@@ -26,7 +26,7 @@ pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()
 }
 
 fn should_write_policies(policies_path: &Path, policies: &str) -> bool {
-    if !policies_path.exists() || ARGS.get().unwrap().auto_confirm {
+    if !policies_path.exists() || args().auto_confirm {
         return true;
     }
 
@@ -94,20 +94,20 @@ fn generate_policies() -> serde_json::Result<String> {
     policies.insert(s!("FirefoxHome"), firefox_home);
     // Customize Firefox Suggest (US only).
     let firefox_suggest = json!({
-        "WebSuggestions": ARGS.get().unwrap().search_suggestions,
+        "WebSuggestions": args().search_suggestions,
         "SponsoredSuggestions": false,
         "ImproveSuggest": false,
         "Locked": false
     });
     policies.insert(s!("FirefoxSuggest"), firefox_suggest);
     // Enable or disable network prediction (DNS prefetching).
-    policies.insert(s!("NetworkPrediction"), json!(ARGS.get().unwrap().search_suggestions));
+    policies.insert(s!("NetworkPrediction"), json!(args().search_suggestions));
     // Sets the default value of signon.rememberSignons without locking it.
     policies.insert(s!("OfferToSaveLoginsDefault"), json!(false));
     // Override the first run page. If the value is an empty string (“”), the first run page is not displayed.
     policies.insert(s!("OverrideFirstRunPage"), json!(""));
     // Enable search suggestions.
-    policies.insert(s!("SearchSuggestEnabled"), json!(ARGS.get().unwrap().search_suggestions));
+    policies.insert(s!("SearchSuggestEnabled"), json!(args().search_suggestions));
     // Show the home button on the toolbar.
     policies.insert(s!("ShowHomeButton"), json!(false));
     // If true, don’t display the Firefox Terms of Use and Privacy Notice upon startup. You represent that you accept and have the authority to accept the Terms of Use on behalf of all individuals to whom you provide access to this browser.
@@ -117,7 +117,7 @@ fn generate_policies() -> serde_json::Result<String> {
         "WhatsNew": false, // Remove the "What’s New" icon and menuitem. (Deprecated)
         "ExtensionRecommendations": false, // If false, don’t recommend extensions while the user is visiting web pages.
         "FeatureRecommendations": false, // If false, don’t recommend browser features.
-        "UrlbarInterventions": ARGS.get().unwrap().search_suggestions, // If false, don’t offer Firefox specific suggestions in the URL bar.
+        "UrlbarInterventions": args().search_suggestions, // If false, don’t offer Firefox specific suggestions in the URL bar.
         "SkipOnboarding": true, // If true, don’t show onboarding messages on the new tab page.
         "MoreFromMozilla": false, // If false, don’t show the "More from Mozilla" section in Preferences.
         "FirefoxLabs": false, // If false, don’t show the "Firefox Labs" section in Preferences.

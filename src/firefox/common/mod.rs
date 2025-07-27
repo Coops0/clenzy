@@ -3,6 +3,7 @@ use crate::{util::select_profiles, ARGS};
 use tracing::{debug, debug_span, warn};
 use crate::browser::Browser;
 use crate::browser::profile::BrowserProfile;
+use crate::util::args;
 
 mod backup;
 mod profiles;
@@ -30,7 +31,7 @@ pub fn debloat<B: Browser>(
         let span = debug_span!("Debloating profile", profile = %profile);
         let _enter = span.enter();
 
-        if ARGS.get().unwrap().backup
+        if args().backup
             && let Err(why) = backup::backup_profile(profile)
         {
             warn!(err = ?why, "Failed to backup profile {profile}");

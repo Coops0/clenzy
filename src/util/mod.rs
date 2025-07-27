@@ -124,7 +124,7 @@ pub fn validate_profile_dir(profile: &Path) -> bool {
 }
 
 pub fn select_profiles<P: Display, B: Browser>(mut profiles: Vec<P>, selected: &[usize]) -> Vec<P> {
-    if ARGS.get().unwrap().auto_confirm {
+    if args().auto_confirm {
         profiles
     } else if profiles.len() == 1 {
         vec![profiles.remove(0)]
@@ -160,7 +160,7 @@ fn get_matching_running_processes(system: &mut System, name: &str) -> String {
 }
 
 pub fn check_if_running(system: &mut System, browser_name: &str) {
-    if ARGS.get().unwrap().auto_confirm {
+    if args().auto_confirm {
         return;
     }
 
@@ -242,4 +242,8 @@ macro_rules! render_browsers {
             },
         )+]
     }};
+}
+
+pub fn args() -> &'static crate::Args {
+    ARGS.get().expect("to be initialized")
 }

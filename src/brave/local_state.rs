@@ -3,6 +3,7 @@ use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
 use tracing::debug;
+use crate::util::args;
 
 pub fn get_local_state(root: &Path) -> color_eyre::Result<Map<String, Value>> {
     let local_state_path = root.join("Local State");
@@ -48,7 +49,7 @@ pub fn update_local_state(
 
     brave.insert(
         s!("enable_search_suggestions_by_default"),
-        json!(ARGS.get().unwrap().search_suggestions)
+        json!(args().search_suggestions)
     );
 
     if let Some(p3a) = get_or_insert_obj(brave, "p3a") {

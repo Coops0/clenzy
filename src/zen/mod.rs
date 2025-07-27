@@ -5,6 +5,7 @@ use crate::{browser::Browser, firefox, ARGS};
 use installations::installations;
 use tracing::{debug, warn};
 use crate::browser::installation::Installation;
+use crate::util::args;
 
 pub struct Zen;
 
@@ -29,7 +30,7 @@ impl Browser for Zen {
 pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
     // Not all of these will be used but some are
     let mut custom_overrides = vec![include_str!("../../snippets/firefox_common/betterfox_extra")];
-    if ARGS.get().unwrap().search_suggestions {
+    if args().search_suggestions {
         custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
     }
 

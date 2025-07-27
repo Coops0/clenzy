@@ -4,7 +4,11 @@ mod installations;
 mod preferences;
 mod profiles;
 mod resources;
+mod policies;
 
+pub use policies::create_policies;
+#[cfg(target_os = "windows")]
+pub use policies::create_policies_windows;
 use std::path::Path;
 use crate::browser::profile::BrowserProfile;
 use tracing::{debug, debug_span, warn};

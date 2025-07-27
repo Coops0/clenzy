@@ -1,17 +1,17 @@
 mod brave;
 mod browser;
 mod firefox;
-mod zen;
 mod util;
+mod zen;
 
-use crate::util::{check_if_running, start_fetch_resource, RenderedBrowser};
 use crate::{
-    brave::Brave, browser::Browser, firefox::Firefox, zen::Zen
+    brave::Brave, browser::Browser, firefox::Firefox, util::{RenderedBrowser, check_if_running, start_fetch_resource}, zen::Zen
 };
 use clap::{ArgAction, Parser};
 use inquire::MultiSelect;
-use std::{env, sync::OnceLock};
-use std::sync::LazyLock;
+use std::{
+    env, sync::{LazyLock, OnceLock}
+};
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
 use util::logging::{setup_logging, success};
@@ -45,7 +45,8 @@ pub struct Args {
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
-pub static BROWSERS: LazyLock<Vec<RenderedBrowser>> = LazyLock::new(|| render_browsers!(Firefox, Brave, Zen));
+pub static BROWSERS: LazyLock<Vec<RenderedBrowser>> =
+    LazyLock::new(|| render_browsers!(Firefox, Brave, Zen));
 
 fn main() -> color_eyre::Result<()> {
     if cfg!(debug_assertions) {
@@ -92,7 +93,7 @@ fn main() -> color_eyre::Result<()> {
 
     let mut system = System::new();
 
-    for installation in installations {
+    for installation in &installations {
         let span = debug_span!("debloat", browser = %installation.browser_name);
         let _enter = span.enter();
 
@@ -104,13 +105,29 @@ fn main() -> color_eyre::Result<()> {
         }
     }
 
+    // For Brave policies on windows, it uses the registry
+    // so we only want to run this once. Not dependent on profiles.
+    #[cfg(target_os = "windows")]
+    if args.create_policies {
+        let install = installations.iter().find(|i| i.browser_name == Brave::name());
+
+        if let Some(install) = install {
+            if let Err(why) = brave::create_policies_windows(install) {
+                warn!(err = %why, "Failed to create Brave policies");
+            } else {
+                success("Created Brave policies");
+            }
+        }
+    }
+
     success("Done");
     Ok(())
 }
 
 fn no_browsers_msg() {
     info!("No supported browsers found on your computer.");
-    let supported = BROWSERS.iter()
+    let supported = BROWSERS
+        .iter()
         .flat_map(|browser| &browser.installations)
         .map(|installation| format!("{installation}"))
         .collect::<Vec<_>>()

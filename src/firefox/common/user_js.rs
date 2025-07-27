@@ -1,8 +1,9 @@
-use crate::{util::UnwrapOrExit, ARGS};
+use crate::{
+    ARGS, browser::profile::BrowserProfile, util::{UnwrapOrExit, args}
+};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
 use tracing::debug;
-use crate::browser::profile::BrowserProfile;
 
 pub fn install_user_js(
     profile: &BrowserProfile,
@@ -43,13 +44,27 @@ pub fn install_user_js(
 }
 
 fn should_write_user_js(profile: &BrowserProfile, path: &Path, user_js_str: &str) -> bool {
-    if !path.exists() || ARGS.get().unwrap().auto_confirm {
+    if !path.exists() || args().auto_confirm {
         return true;
     }
 
     let existing_fs_user_js = fs::read_to_string(path).unwrap_or_default();
+    let mut efuj_lines = existing_fs_user_js.lines();
+    let mut ujs_lines = user_js_str.lines();
 
-    if existing_fs_user_js == user_js_str {
+    // Check whether all our lines are present in the existing user.js
+    let mismatches = ujs_lines
+        .filter(|preset_line| {
+            let preset_line = preset_line.trim();
+
+            // Line isn't empty or comment, make sure this line is valid to check for
+            !preset_line.is_empty() && !preset_line.starts_with("//")
+            // No matching line
+            && !efuj_lines.any(|line| line.trim().eq_ignore_ascii_case(preset_line))
+        })
+        .count();
+
+    if mismatches > 5 {
         debug!(path = %path.display(), "user.js already exists and is the same");
         return false;
     }

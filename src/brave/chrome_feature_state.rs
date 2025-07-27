@@ -6,6 +6,7 @@ use resources::replace_symbols;
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};
 use tracing::{debug, warn};
+use crate::util::args;
 use crate::util::logging::success;
 
 pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
@@ -14,7 +15,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
         debug!(path = %path.display(), "ChromeFeatureState does not exist, creating it");
     }
 
-    if ARGS.get().unwrap().backup && path.exists() {
+    if args().backup && path.exists() {
         let backup = root.join(format!("ChromeFeatureState-{}", timestamp())).with_extension("bak");
         // This is less important to have a backup of, so warn but continue
         match fs::copy(&path, &backup) {

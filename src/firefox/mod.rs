@@ -12,6 +12,7 @@ use std::path::Path;
 use tracing::{debug, debug_span, warn};
 use crate::browser::installation::Installation;
 use crate::browser::profile::BrowserProfile;
+use crate::util::args;
 
 pub struct Firefox;
 
@@ -41,11 +42,11 @@ pub fn debloat(installation: &Installation) {
         include_str!("../../snippets/firefox/extra"),
     ];
 
-    if ARGS.get().unwrap().vertical_tabs {
+    if args().vertical_tabs {
         custom_overrides.push(include_str!("../../snippets/firefox/vert_tabs"));
     }
 
-    if ARGS.get().unwrap().search_suggestions {
+    if args().search_suggestions {
         custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
     }
 
@@ -78,7 +79,7 @@ fn debloat_profile(
         &custom_overrides.join("\n")
     )?;
 
-    if !ARGS.get().unwrap().vertical_tabs {
+    if !args().vertical_tabs {
         return Ok(profiles);
     }
 
@@ -92,7 +93,7 @@ fn debloat_profile(
         }
     }
 
-    if !ARGS.get().unwrap().create_policies {
+    if !args().create_policies {
         return Ok(profiles);
     }
 

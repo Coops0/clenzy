@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 use crate::ARGS;
+use crate::util::args;
 
 // Yeah. They literally write the string '\u003C' in the file.
 pub fn replace_symbols(line: &str) -> String {
@@ -12,7 +13,8 @@ pub static DISABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
 
-    if !ARGS.get().unwrap().search_suggestions {
+    // TODO not sure about this
+    if !args().search_suggestions {
         lines.extend(
             include_str!("../../snippets/brave/disabled_prefetch_features")
                 .lines()
@@ -29,7 +31,7 @@ pub static REMOVE_ENABLED_FEATURES: LazyLock<Vec<&str>> = LazyLock::new(|| {
         .filter(|line| !line.is_empty())
         .collect::<Vec<_>>();
 
-    if !ARGS.get().unwrap().search_suggestions {
+    if !args().search_suggestions {
         lines.extend(
             include_str!("../../snippets/brave/remove_prefetch_features")
                 .lines()
