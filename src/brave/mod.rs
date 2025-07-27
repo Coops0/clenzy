@@ -16,6 +16,7 @@ use crate::browser::installation::Installation;
 
 use installations::installations;
 use crate::browser::Browser;
+use crate::util::args;
 
 pub struct Brave;
 
@@ -34,6 +35,14 @@ impl Browser for Brave {
                 warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
             } else {
                 debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
+            }
+        }
+
+        if args().create_policies {
+            if let Err(why) = create_policies(installation) {
+                warn!(err = ?why, "Failed to create policies for Brave");
+            } else {
+                debug!("Successfully created policies for Brave");
             }
         }
 

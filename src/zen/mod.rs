@@ -29,9 +29,9 @@ impl Browser for Zen {
 
 pub fn debloat(installation: &Installation) -> color_eyre::Result<()> {
     // Not all of these will be used but some are
-    let mut custom_overrides = vec![include_str!("../../snippets/firefox_common/betterfox_extra")];
+    let mut custom_overrides = vec![include_str!("../../snippets/firefox_common/betterfox_extra.js")];
     if args().search_suggestions {
-        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
+        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions.js"));
     }
 
     let mut found_profile = false;

@@ -38,16 +38,16 @@ impl Browser for Firefox {
 #[allow(clippy::unnecessary_wraps)]
 pub fn debloat(installation: &Installation) {
     let mut custom_overrides = vec![
-        include_str!("../../snippets/firefox_common/betterfox_extra"),
-        include_str!("../../snippets/firefox/extra"),
+        include_str!("../../snippets/firefox_common/betterfox_extra.js"),
+        include_str!("../../snippets/firefox/extra.js"),
     ];
 
     if args().vertical_tabs {
-        custom_overrides.push(include_str!("../../snippets/firefox/vert_tabs"));
+        custom_overrides.push(include_str!("../../snippets/firefox/vert_tabs.js"));
     }
 
     if args().search_suggestions {
-        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions"));
+        custom_overrides.push(include_str!("../../snippets/firefox_common/search_suggestions.js"));
     }
 
     let mut found_profile = false;
