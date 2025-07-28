@@ -17,6 +17,8 @@ pub fn debloat<B: Browser>(
     let (defaults, profiles) = profiles::get_profiles(data_folder)?;
     debug!("Found {} valid profiles", profiles.len());
 
+    return Ok(profiles);
+
     if profiles.is_empty() {
         return Ok(Vec::new());
     }

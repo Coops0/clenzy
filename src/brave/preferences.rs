@@ -31,7 +31,7 @@ pub fn preferences(root: &Path) -> color_eyre::Result<()> {
     let brave = prefs
         .get_mut("brave")
         .and_then(Value::as_object_mut)
-        .context("failed to get brave object")?;
+        .wrap_err("failed to get brave object")?;
 
     if let Some(ai_chat) = get_or_insert_obj(brave, "ai_chat") {
         ai_chat.insert(s!("autocomplete_provider_enabled"), json!(false));

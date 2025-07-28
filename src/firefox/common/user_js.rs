@@ -17,7 +17,7 @@ pub fn install_user_js(
         let start_my_overrides_pos = lines
             .iter()
             .rposition(|l| l.trim().starts_with("* START: MY OVERRIDE"))
-            .context("Failed to find start of 'my overrides'")?;
+            .wrap_err("Failed to find start of 'my overrides'")?;
 
         // Skip comments and a blank space
         let start_my_overrides_pos = start_my_overrides_pos + 6;

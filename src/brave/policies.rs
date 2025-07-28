@@ -1,7 +1,7 @@
 use crate::{
-    browser::installation::{Installation, Variant}, util::{args, logging::success}
+    browser::installation::{Installation, Variant}, util::{UnwrapOrExit, args, logging::success}
 };
-use color_eyre::eyre::ContextCompat;
+use color_eyre::eyre::{Context, ContextCompat};
 use std::{fs, sync::LazyLock};
 use tracing::warn;
 
@@ -19,16 +19,37 @@ pub fn create_policies(installation: &Installation) -> color_eyre::Result<()> {
 // regedit
 pub fn create_policies_windows(
     installation: &Installation,
-    should_backup: bool
+    should_backup: bool,
+    short_circuit: bool
 ) -> color_eyre::Result<()> {
     // FIXME need to elevate permissions >:(
     use std::fmt::Write;
     use windows_registry::*;
 
     // FIXME for beta/nightly?
-    let mut policies_key = LOCAL_MACHINE
+    let mut policies_key = match LOCAL_MACHINE
         // Creates or opens
-        .create("Software\\Policies\\BraveSoftware\\Brave")?;
+        .create("Software\\Policies\\BraveSoftware\\Brave")
+    {
+        Ok(key) => key,
+        Err(why) => {
+            if short_circuit {
+                return Err(why.wrap_err("Permission error even with elevated permissions"));
+            }
+
+            if !args().auto_confirm {
+                info!("Brave policy creation requires elevated permissions.");
+                let should_continue =
+                    inquire::prompt_confirmation("Request elevated permissions? (y/n)")
+                        .unwrap_or_exit();
+                if !should_continue {
+                    return Ok(());
+                }
+            }
+
+            return elevate_and_run_brave_policies();
+        }
+    };
 
     fn stringify(v: Vec<(String, Value)>) -> String {
         let mut backup = String::from(
@@ -48,7 +69,8 @@ pub fn create_policies_windows(
     }
 
     let original = if should_backup {
-        let v = policies_key.values().unwrap().collect::<Vec<(String, Value)>>();
+        let v =
+            policies_key.values().map(|v| v.collect::<Vec<(String, Value)>>()).unwrap_or_default();
         Some(stringify(v))
     } else {
         None
@@ -62,28 +84,32 @@ pub fn create_policies_windows(
 
         if let Some(n) = value.as_u64() {
             inserted_new_lines = true;
-            policies_key.set_u32(key, n as u32)?;
+            policies_key.set_u32(key, n as u32).wrap_err_with(|| {
+                format!("failed to set key {key} with value {n} in Brave policies")
+            })?;
         }
     }
 
-    if !inserted_new_lines {
+    if !inserted_new_lines || short_circuit {
         return Ok(());
     }
 
-    if let Some(stringified) = original {
-        let backup_path = installation.data_folders.first().map(|f| {
-            f.join(format!("policies-backup-{}.reg", chrono::Utc::now().format("%Y%m%d%H%M")))
-        });
+    let Some(stringified) = original else {
+        return Ok(());
+    };
 
-        if let Some(p) = backup_path {
-            if let Err(why) = fs::write(&p, stringified.as_bytes()) {
-                warn!(err = ?why, "Failed to write backup file: {}", p.display());
-            } else {
-                success(&format!("Backed up policies for {installation}"));
-            }
+    let backup_path = installation.data_folders.first().map(|f| {
+        f.join(format!("policies-backup-{}.reg", chrono::Utc::now().format("%Y%m%d%H%M")))
+    });
+
+    if let Some(p) = backup_path {
+        if let Err(why) = fs::write(&p, stringified.as_bytes()) {
+            warn!(err = ?why, "Failed to write backup file: {}", p.display());
         } else {
-            warn!("Failed to find backup path for Brave policies, continuing anyway");
+            success(&format!("Backed up policies for {installation}"));
         }
+    } else {
+        warn!("Failed to find backup path for Brave policies, continuing anyway");
     }
 
     Ok(())
@@ -93,7 +119,7 @@ pub fn create_policies_windows(
 #[allow(clippy::items_after_statements)]
 // plist
 fn create(installation: &Installation, should_backup: bool) -> color_eyre::Result<()> {
-    let home = dirs::home_dir().context("Couldn't find home directory")?;
+    let home = dirs::home_dir().wrap_err("Couldn't find home directory")?;
 
     let modifier = match installation.variant {
         Some(Variant::Beta) => ".beta",
@@ -196,5 +222,10 @@ fn create(_installation: &Installation, _backup: bool) -> color_eyre::Result<()>
         );
     }
 
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn elevate_and_run_brave_policies() -> anyhow::Result<()> {
     Ok(())
 }

@@ -33,7 +33,7 @@ pub fn chrome_feature_state(root: &Path) -> color_eyre::Result<()> {
     let mut prefs_parsed =
         serde_json::from_str::<Value>(&prefs_str).unwrap_or_else(|_| Value::Object(Map::new()));
 
-    let prefs = prefs_parsed.as_object_mut().context("failed to parse preferences as an object")?;
+    let prefs = prefs_parsed.as_object_mut().wrap_err("failed to parse preferences as an object")?;
 
     // Both features are seperated by commas
     let mut disable_features = prefs

@@ -15,7 +15,7 @@ pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
     // Canonicalize to convert to an absolute path just in case, so we can get parent dir
     let profiles_path = fs::canonicalize(&profile.path)
         .map_err(color_eyre::eyre::Error::from)
-        .and_then(|p| p.parent().map(Path::to_path_buf).context("Parent was None"))
+        .and_then(|p| p.parent().map(Path::to_path_buf).wrap_err("Parent was None"))
         .unwrap_or_else(|why| {
             warn!(path = %profile.path.display(), err = %why, "Failed to get parent directory, falling back to profile path");
             profile.path.clone()

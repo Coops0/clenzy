@@ -26,7 +26,7 @@ pub fn update_local_state(
     let brave = local_state
         .get_mut("brave")
         .and_then(Value::as_object_mut)
-        .context("Failed to get brave object")?;
+        .wrap_err("Failed to get brave object")?;
 
     if let Some(ai_chat) = get_or_insert_obj(brave, "ai_chat") {
         ai_chat.insert(s!("p3a_last_premium_status"), json!(false));
@@ -66,7 +66,7 @@ pub fn update_local_state(
     let browser = local_state
         .get_mut("browser")
         .and_then(Value::as_object_mut)
-        .context("Failed to get browser object")?;
+        .wrap_err("Failed to get browser object")?;
 
     if let Some(enabled_lab_features) =
         browser.get_mut("enabled_lab_features").and_then(Value::as_array_mut)

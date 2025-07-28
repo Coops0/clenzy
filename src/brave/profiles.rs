@@ -13,13 +13,13 @@ pub fn try_to_get_profiles(
     let profile = local_state
         .get("profile")
         .and_then(Value::as_object)
-        .context("Failed to get profile object")?;
+        .wrap_err("Failed to get profile object")?;
 
     let mut info_cache = profile
         .get("info_cache")
         .and_then(Value::as_object)
         .inspect(|ic| debug!(len = %ic.iter().len(), "Initial info_cache object"))
-        .context("Failed to get info_cache object")?
+        .wrap_err("Failed to get info_cache object")?
         .into_iter()
         .filter_map(|(n, o)| Some((n, o.as_object()?)))
         .filter_map(|(n, o)| {

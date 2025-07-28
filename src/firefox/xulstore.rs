@@ -18,7 +18,7 @@ pub fn xulstore(root: &Path) -> color_eyre::Result<()> {
 
     let browser_content =
         get_or_insert_obj(&mut xulstore, "chrome://browser/content/browser.xhtml")
-            .context("Failed to cast browser content")?;
+            .wrap_err("Failed to cast browser content")?;
 
     if let Some(vertical_tabs) = get_or_insert_obj(browser_content, "vertical-tabs") {
         vertical_tabs.insert(String::from("collapsed"), json!(false));

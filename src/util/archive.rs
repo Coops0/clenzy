@@ -88,7 +88,7 @@ fn add_file_to_archive(
 
         let bytes = buffer
             .get(..b)
-            .with_context(|| format!("failed to index into byte {b} when zipping"))?;
+            .wrap_err_with(|| format!("failed to index into byte {b} when zipping"))?;
         zip.write_all(bytes)?;
     }
 
