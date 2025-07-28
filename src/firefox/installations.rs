@@ -19,6 +19,9 @@ fn local() -> Vec<PathBuf> {
         if let Some(rb) = roaming_base {
             ret.push(rb.join("Mozilla/Firefox"));
         }
+
+        ret.push(PathBuf::from("C:\\Program Files\\Mozilla Firefox"));
+        ret.push(PathBuf::from("C:\\Program Files (x86)\\Mozilla Firefox"));
     } else if let Some(rb) = roaming_base {
         ret.push(rb.join(".mozilla/firefox"));
     }

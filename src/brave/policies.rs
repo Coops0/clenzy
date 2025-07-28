@@ -2,7 +2,7 @@ use crate::{
     browser::installation::{Installation, Variant}, util::{UnwrapOrExit, args, logging::success}
 };
 use color_eyre::eyre::{Context, ContextCompat};
-use std::{fs, sync::LazyLock};
+use std::{fs, process::Stdio, sync::LazyLock};
 use tracing::warn;
 
 static POLICIES: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| {
@@ -22,7 +22,6 @@ pub fn create_policies_windows(
     should_backup: bool,
     short_circuit: bool
 ) -> color_eyre::Result<()> {
-    // FIXME need to elevate permissions >:(
     use std::fmt::Write;
     use windows_registry::*;
 
@@ -34,11 +33,11 @@ pub fn create_policies_windows(
         Ok(key) => key,
         Err(why) => {
             if short_circuit {
-                return Err(why.wrap_err("Permission error even with elevated permissions"));
+                return Err(why).wrap_err("Permission error even with elevated permissions");
             }
 
             if !args().auto_confirm {
-                info!("Brave policy creation requires elevated permissions.");
+                tracing::info!("Brave policy creation requires elevated permissions.");
                 let should_continue =
                     inquire::prompt_confirmation("Request elevated permissions? (y/n)")
                         .unwrap_or_exit();
@@ -172,7 +171,8 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         }
     }
 
-    plist::to_file_binary(&plist_path, &new_plist).map_err(Into::into)
+    plist::to_file_binary(&plist_path, &new_plist)
+        .wrap_err("Failed to save Brave plist file")
 }
 
 #[cfg(target_os = "linux")]
@@ -182,7 +182,7 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
     let root = std::path::Path::new("/etc/brave/policies/managed/");
     let _ = fs::create_dir_all(root);
 
-    let policies_path = root.join("policies.json");
+    let policies_path = root.join("custom-policy.json.json");
     let policies_data = fs::read(&policies_path).ok();
     let existing_policies = policies_data
         .as_ref()
@@ -209,7 +209,6 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         }
     }
 
-    // FIXME the docs don't say if the file needs a specific name?
     fs::write(&policies_path, serde_json::to_string_pretty(&new_policies)?).map_err(Into::into)
 }
 
@@ -226,6 +225,32 @@ fn create(_installation: &Installation, _backup: bool) -> color_eyre::Result<()>
 }
 
 #[cfg(target_os = "windows")]
-fn elevate_and_run_brave_policies() -> anyhow::Result<()> {
+fn elevate_and_run_brave_policies() -> color_eyre::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    let exe_path = std::env::current_exe().wrap_err("failed to resolve current exe")?;
+
+    let mut elevated_args = vec![String::from("--windows-brave-policies")];
+    if args.len() > 1 {
+        elevated_args.extend_from_slice(&args[1..]);
+    }
+
+    let ps_script = format!(
+        "Start-Process -FilePath '{}' -ArgumentList '{}' -Verb RunAs -Wait",
+        exe_path.display(),
+        elevated_args.join("','")
+    );
+
+    let status = std::process::Command::new("powershell")
+        .args(&["-Command", &ps_script])
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .stdin(Stdio::null())
+        .status()
+        .wrap_err("Failed to run powershell")?;
+
+    if !status.success() {
+        color_eyre::eyre::bail!("got non-zero exit code: {status}");
+    }
+
     Ok(())
 }

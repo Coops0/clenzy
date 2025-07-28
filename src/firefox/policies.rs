@@ -49,8 +49,7 @@ fn should_write_policies(policies_path: &Path, policies: &str) -> bool {
 }
 
 fn generate_policies() -> serde_json::Result<String> {
-    let mut obj = json!({"policies": {}});
-    let policies = obj.as_object_mut().unwrap();
+    let mut policies = serde_json::Map::<String, serde_json::Value>::new();
     // If set to false, application updates are downloaded but the user can choose when to install the update.
     policies.insert(s!("AppAutoUpdate"), json!(false));
     // Enables or disables autofill for payment methods.
@@ -63,13 +62,13 @@ fn generate_policies() -> serde_json::Result<String> {
     policies.insert(s!("DisableForgetButton"), json!(true));
     // Remove the master password functionality.
     // If this value is true, it works the same as setting PrimaryPassword to false and removes the primary password functionality.
-    policies.insert(s!("DisableMasterPasswordCreation"), json!(true));
+    // policies.insert(s!("DisableMasterPasswordCreation"), json!(true));
     // Turn off saving information on web forms and the search bar.
-    policies.insert(s!("DisableFormHistory"), json!(true));
+    // policies.insert(s!("DisableFormHistory"), json!(true));
     // Remove Pocket in the Firefox UI. It does not remove it from the new tab page.
     policies.insert(s!("DisablePocket"), json!(true));
     // Disables the “Import data from another browser” option in the bookmarks window.
-    policies.insert(s!("DisableProfileImport"), json!(true));
+    // policies.insert(s!("DisableProfileImport"), json!(true));
     // Prevent the upload of telemetry data.
     // As of Firefox 83 and Firefox ESR 78.5, local storage of telemetry data is disabled as well.
     policies.insert(s!("DisableTelemetry"), json!(true));
@@ -77,7 +76,7 @@ fn generate_policies() -> serde_json::Result<String> {
     // `always` means the bookmarks toolbar is always shown.
     // `never` means the bookmarks toolbar is not shown.
     // `newtab` means the bookmarks toolbar is only shown on the new tab page.
-    policies.insert(s!("DisplayBookmarksToolbar"), json!("newtab"));
+    // policies.insert(s!("DisplayBookmarksToolbar"), json!("newtab"));
     // Don’t check if Firefox is the default browser at startup.
     policies.insert(s!("DontCheckDefaultBrowser"), json!(true));
     // Customize the Firefox Home page.
@@ -125,5 +124,5 @@ fn generate_policies() -> serde_json::Result<String> {
     });
     policies.insert(s!("UserMessaging"), user_messaging);
 
-    serde_json::to_string(&obj)
+    serde_json::to_string(&json!({"policies": policies}))
 }
