@@ -1,4 +1,4 @@
-use crate::{brave::resources::REMOVE_ENABLED_LAB_FEATURES, s, util::get_or_insert_obj, ARGS};
+use crate::{brave::resources::REMOVE_ENABLED_LAB_FEATURES, s, util::get_or_insert_obj};
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Map, Value};
 use std::{fs, path::Path};

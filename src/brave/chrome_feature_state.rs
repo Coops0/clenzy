@@ -1,6 +1,6 @@
 use crate::{brave::{
     resources, resources::{DISABLED_FEATURES, REMOVE_ENABLED_FEATURES}
-}, s, util::timestamp, ARGS};
+}, s, util::timestamp};
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use resources::replace_symbols;
 use serde_json::{json, Map, Value};

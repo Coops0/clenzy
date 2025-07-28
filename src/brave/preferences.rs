@@ -1,4 +1,4 @@
-use crate::{s, util::{get_or_insert_obj, timestamp}, ARGS};
+use crate::{s, util::{get_or_insert_obj, timestamp}};
 use color_eyre::eyre::{bail, ContextCompat, WrapErr};
 use serde_json::{json, Value};
 use std::{fs, path::Path};

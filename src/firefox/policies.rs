@@ -1,4 +1,4 @@
-use crate::{ARGS, s, util::UnwrapOrExit};
+use crate::{s, util::UnwrapOrExit};
 use color_eyre::eyre::Context;
 use serde_json::json;
 use std::{fs, path::Path};

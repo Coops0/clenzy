@@ -1,5 +1,5 @@
 use std::path::Path;
-use crate::{util::select_profiles, ARGS};
+use crate::util::select_profiles;
 use tracing::{debug, debug_span, warn};
 use crate::browser::Browser;
 use crate::browser::profile::BrowserProfile;

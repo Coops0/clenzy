@@ -1,5 +1,4 @@
 use std::sync::LazyLock;
-use crate::ARGS;
 use crate::util::args;
 
 // Yeah. They literally write the string '\u003C' in the file.

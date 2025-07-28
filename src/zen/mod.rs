@@ -1,7 +1,7 @@
 mod installations;
 pub mod resource;
 
-use crate::{browser::Browser, firefox, ARGS};
+use crate::{browser::Browser, firefox};
 use installations::installations;
 use tracing::{debug, warn};
 use crate::browser::installation::Installation;

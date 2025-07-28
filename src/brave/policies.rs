@@ -2,9 +2,8 @@ use crate::{
     browser::installation::{Installation, Variant}, util::{args, logging::success}
 };
 use color_eyre::eyre::ContextCompat;
-use std::{fs, path::Path, sync::LazyLock};
+use std::{fs, sync::LazyLock};
 use tracing::warn;
-use tracing_subscriber::fmt::format;
 
 static POLICIES: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| {
     serde_json::from_str(include_str!("../../snippets/brave/policies.json"))
@@ -17,11 +16,13 @@ pub fn create_policies(installation: &Installation) -> color_eyre::Result<()> {
 }
 
 #[cfg(target_os = "windows")]
+#[allow(clippy::items_after_statements)]
 // regedit
 pub fn create_policies_windows(
     installation: &Installation,
     should_backup: bool
 ) -> color_eyre::Result<()> {
+    use std::fmt::Write;
     use windows_registry::*;
 
     // FIXME for beta/nightly?
@@ -29,7 +30,7 @@ pub fn create_policies_windows(
         // Creates or opens
         .create("Software\\Policies\\BraveSoftware\\Brave")?;
 
-    fn stringify(i: &Installation, v: &ValueIterator<'_>) -> Option<String> {
+    fn stringify(v: Vec<(String, Value)>) -> String {
         let mut backup = String::from(
             r#"Windows Registry Editor Version 5.00
 
@@ -38,16 +39,20 @@ pub fn create_policies_windows(
         );
 
         for (key, value) in v {
-            if let Ok(n) = key.try_into::<u32>() {
-                writeln!(&mut backup, r#""{key}"=dword:{n:08}"#);
+            if let Ok(n) = TryInto::<u32>::try_into(value) {
+                let _ = writeln!(&mut backup, r#""{key}"=dword:{n:08}"#);
             }
         }
 
-        Ok(backup)
+        backup
     }
 
-    let original =
-        if should_backup { stringify(installation, policies_key.values()) } else { None };
+    let original = if should_backup {
+        let v = policies_key.values().unwrap().collect::<Vec<(String, Value)>>();
+        Some(stringify(v))
+    } else {
+        None
+    };
 
     let mut inserted_new_lines = false;
     for (key, value) in POLICIES.iter() {
@@ -55,9 +60,9 @@ pub fn create_policies_windows(
             continue;
         };
 
-        if let Ok(n) = key.as_u64() {
+        if let Some(n) = value.as_u64() {
             inserted_new_lines = true;
-            policies_key.set_u32(key, Value(n as u32))?;
+            policies_key.set_u32(key, n as u32)?;
         }
     }
 
@@ -68,9 +73,9 @@ pub fn create_policies_windows(
     if let Some(stringified) = original
         && should_backup
     {
-        let backup_path = i.data_folders.first().map(|f| f.join("policies.reg"))?;
-        if let Err(why) = fs::write(&backup_path, stringified.as_bytes()) {
-            warn!(err = ?why, "Failed to write backup file: {}", backup_path.display());
+        let backup_path = installation.data_folders.first().map(|f| f.join("policies.reg"));
+        if let Some(p) = backup_path && let Err(why) = fs::write(&p, stringified.as_bytes()) {
+            warn!(err = ?why, "Failed to write backup file: {}", p.display());
         } else {
             success(&format!("Backed up policies for {installation}"));
         }
@@ -80,6 +85,7 @@ pub fn create_policies_windows(
 }
 
 #[cfg(target_os = "macos")]
+#[allow(clippy::items_after_statements)]
 // plist
 fn create(installation: &Installation, should_backup: bool) -> color_eyre::Result<()> {
     let home = dirs::home_dir().context("Couldn't find home directory")?;
@@ -96,9 +102,9 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
     let plist_data = fs::read(&plist_path).ok();
     let plist = plist_data
         .as_ref()
-        .and_then(|c| plist::from_bytes::<plist::Value>(&c).ok())
-        .and_then(|p| p.into_dictionary())
-        .unwrap_or(plist::Dictionary::new());
+        .and_then(|c| plist::from_bytes::<plist::Value>(c).ok())
+        .and_then(plist::Value::into_dictionary)
+        .unwrap_or_else(plist::Dictionary::new);
 
     fn backup(i: &Installation, name: &str, p: &[u8]) -> Option<()> {
         let root = i.data_folders.first()?;
@@ -139,9 +145,10 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
 }
 
 #[cfg(target_os = "linux")]
+#[allow(clippy::items_after_statements)]
 // json
 fn create(installation: &Installation, should_backup: bool) -> color_eyre::Result<()> {
-    let root = Path::new("/etc/brave/policies/managed/");
+    let root = std::path::Path::new("/etc/brave/policies/managed/");
     let _ = fs::create_dir_all(root);
 
     let policies_path = root.join("policies.json");
@@ -178,6 +185,8 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn create(_installation: &Installation, _backup: bool) -> color_eyre::Result<()> {
     if !cfg!(target_os = "windows") {
-        bail!("Unsupported OS for Brave policies creation: {}", std::env::consts::OS);
+        color_eyre::eyre::bail!("Unsupported OS for Brave policies creation: {}", std::env::consts::OS);
     }
+
+    Ok(())
 }

@@ -1,5 +1,5 @@
 use crate::{
-    ARGS, browser::profile::BrowserProfile, util::{UnwrapOrExit, args}
+    browser::profile::BrowserProfile, util::{UnwrapOrExit, args}
 };
 use color_eyre::eyre::{ContextCompat, WrapErr};
 use std::{fs, path::Path};
@@ -50,7 +50,7 @@ fn should_write_user_js(profile: &BrowserProfile, path: &Path, user_js_str: &str
 
     let existing_fs_user_js = fs::read_to_string(path).unwrap_or_default();
     let mut efuj_lines = existing_fs_user_js.lines();
-    let mut ujs_lines = user_js_str.lines();
+    let ujs_lines = user_js_str.lines();
 
     // Check whether all our lines are present in the existing user.js
     let mismatches = ujs_lines

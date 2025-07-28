@@ -4,9 +4,7 @@ pub mod resource;
 mod xulstore;
 pub mod common;
 
-use crate::{
-    browser::Browser, ARGS
-};
+use crate::browser::Browser;
 use installations::installations;
 use std::path::Path;
 use tracing::{debug, debug_span, warn};
