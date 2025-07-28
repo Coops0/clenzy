@@ -1,18 +1,22 @@
-use crate::{s, util::UnwrapOrExit};
+use crate::{
+    s, util::{UnwrapOrExit, args, should_elevate}
+};
 use color_eyre::eyre::Context;
 use serde_json::json;
-use std::{fs, path::Path};
+use std::{
+    fs, path::{Path, PathBuf}
+};
 use tracing::debug;
-use crate::util::args;
 
 pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()> {
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
         installation_folder.join("Firefox.app/Contents/Resources/distribution")
-    } else {
-        // Same for windows and linux
+    } else if cfg!(target_os = "windows") {
         installation_folder.join("distribution")
+    } else {
+        return Ok(());
     };
 
     let policies_path = folder.join("policies.json");
@@ -22,7 +26,36 @@ pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()
     }
 
     let _ = fs::create_dir_all(fs::canonicalize(&folder).unwrap_or(folder));
-    fs::write(&policies_path, policies).wrap_err("Failed to write policies.json")
+    fs::write(&policies_path, policies)
+        .wrap_err_with(|| format!("Failed to write policies to {}", &policies_path.display()))
+}
+
+#[cfg(target_os = "linux")]
+pub fn create_linux_policies_file(backup: bool, short_circuit: bool) -> color_eyre::Result<()> {
+    let policies = generate_policies()?;
+    let policies_root = PathBuf::from("/etc/firefox");
+
+    if let Err(why) = fs::create_dir_all(&policies_root) {
+        if short_circuit {
+            return Err(why)
+                .wrap_err("Failed to create policies dir even with elevated permissions");
+        }
+
+        if !should_elevate() {
+            return Ok(());
+        }
+
+        debug!(err = ?why, "Failed to create policies directory, trying with elevated permissions");
+        return crate::util::elevate_and_run("--linux-firefox-policies");
+    }
+
+    if backup && !should_write_policies(&policies_root, &policies) {
+        return Ok(());
+    }
+
+    let policies_path = policies_root.join("policies.json");
+    fs::write(&policies_path, policies)
+        .wrap_err_with(|| format!("Failed to write policies to {}", &policies_path.display()))
 }
 
 fn should_write_policies(policies_path: &Path, policies: &str) -> bool {

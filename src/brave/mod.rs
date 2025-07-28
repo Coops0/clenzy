@@ -9,6 +9,9 @@ mod policies;
 pub use policies::create_policies;
 #[cfg(target_os = "windows")]
 pub use policies::create_policies_windows;
+#[cfg(target_os = "linux")]
+pub use policies::create_policies_linux;
+
 use std::path::Path;
 use crate::browser::profile::BrowserProfile;
 use tracing::{debug, debug_span, warn};
@@ -34,9 +37,13 @@ impl Browser for Brave {
             if let Err(why) = debloat_data_folder(data_folder) {
                 warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
             } else {
-                debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
-            }
-        }
+        // for data_folder in &installation.data_folders {
+        //     if let Err(why) = debloat_data_folder(data_folder) {
+        //         warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
+        //     } else {
+        //         debug!(data_folder = %data_folder.display(), "Successfully debloated data folder");
+        //     }
+        // }
 
         if args().policies {
             if let Err(why) = create_policies(installation) {

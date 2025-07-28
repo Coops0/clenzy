@@ -1,8 +1,8 @@
 use crate::{
-    browser::installation::{Installation, Variant}, util::{UnwrapOrExit, args, logging::success}
+    Args, brave, brave::Brave, browser::installation::{Installation, Variant}, util::{UnwrapOrExit, args, logging::success}
 };
 use color_eyre::eyre::{Context, ContextCompat};
-use std::{fs, process::Stdio, sync::LazyLock};
+use std::{fs, path::Path, process::Stdio, sync::LazyLock};
 use tracing::warn;
 
 static POLICIES: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| {
@@ -36,17 +36,11 @@ pub fn create_policies_windows(
                 return Err(why).wrap_err("Permission error even with elevated permissions");
             }
 
-            if !args().auto_confirm {
-                tracing::info!("Brave policy creation requires elevated permissions.");
-                let should_continue =
-                    inquire::prompt_confirmation("Request elevated permissions? (y/n)")
-                        .unwrap_or_exit();
-                if !should_continue {
-                    return Ok(());
-                }
+            if !crate::util::should_elevate() {
+                return Ok(());
             }
 
-            return elevate_and_run_brave_policies();
+            return crate::util::elevate_and_run("--windows-brave-policies");
         }
     };
 
@@ -171,18 +165,29 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         }
     }
 
-    plist::to_file_binary(&plist_path, &new_plist)
-        .wrap_err("Failed to save Brave plist file")
+    plist::to_file_binary(&plist_path, &new_plist).wrap_err("Failed to save Brave plist file")
 }
 
 #[cfg(target_os = "linux")]
 #[allow(clippy::items_after_statements)]
 // json
-fn create(installation: &Installation, should_backup: bool) -> color_eyre::Result<()> {
+pub fn create_policies_linux(should_backup: bool, short_circuit: bool) -> color_eyre::Result<()> {
     let root = std::path::Path::new("/etc/brave/policies/managed/");
-    let _ = fs::create_dir_all(root);
+    if let Err(why) = fs::create_dir_all(root) {
+        tracing::debug!(path = %root.display(), err = ?why, "Create dir all returned error for Brave policies");
 
-    let policies_path = root.join("custom-policy.json.json");
+        if short_circuit {
+            return Err(why).wrap_err("Permission error even with elevated permissions");
+        }
+
+        if !crate::util::should_elevate() {
+            return Ok(());
+        }
+
+        return crate::util::elevate_and_run("--linux-brave-policies");
+    }
+
+    let policies_path = root.join("custom-policy.json");
     let policies_data = fs::read(&policies_path).ok();
     let existing_policies = policies_data
         .as_ref()
@@ -203,53 +208,24 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         let target =
             root.join(format!("policies-{}.json", chrono::Utc::now().format("%Y%m%d%H%M")));
         if let Err(why) = fs::write(&target, d) {
-            warn!(err = ?why, "Failed to backup existing Brave policy file for {installation}");
+            warn!(err = ?why, "Failed to backup existing Brave policy file");
         } else {
-            success(&format!("Backed up existing Brave policies file for {installation}"));
+            success(&format!("Backed up existing Brave policies file"));
         }
     }
 
-    fs::write(&policies_path, serde_json::to_string_pretty(&new_policies)?).map_err(Into::into)
+    fs::write(&policies_path, serde_json::to_string(&new_policies)?)
+        .wrap_err_with(|| format!("Failed to write policies to {}", policies_path.display()))
+        .map_err(Into::into)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[cfg(not(target_os = "macos"))]
 fn create(_installation: &Installation, _backup: bool) -> color_eyre::Result<()> {
-    if !cfg!(target_os = "windows") {
+    if !cfg!(any(target_os = "windows", target_os = "linux")) {
         color_eyre::eyre::bail!(
             "Unsupported OS for Brave policies creation: {}",
             std::env::consts::OS
         );
-    }
-
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn elevate_and_run_brave_policies() -> color_eyre::Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    let exe_path = std::env::current_exe().wrap_err("failed to resolve current exe")?;
-
-    let mut elevated_args = vec![String::from("--windows-brave-policies")];
-    if args.len() > 1 {
-        elevated_args.extend_from_slice(&args[1..]);
-    }
-
-    let ps_script = format!(
-        "Start-Process -FilePath '{}' -ArgumentList '{}' -Verb RunAs -Wait",
-        exe_path.display(),
-        elevated_args.join("','")
-    );
-
-    let status = std::process::Command::new("powershell")
-        .args(&["-Command", &ps_script])
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .stdin(Stdio::null())
-        .status()
-        .wrap_err("Failed to run powershell")?;
-
-    if !status.success() {
-        color_eyre::eyre::bail!("got non-zero exit code: {status}");
     }
 
     Ok(())

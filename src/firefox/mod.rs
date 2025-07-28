@@ -4,6 +4,8 @@ pub mod resource;
 mod xulstore;
 pub mod common;
 
+#[cfg(target_os = "linux")]
+pub use policies::create_linux_policies_file;
 use crate::browser::Browser;
 use installations::installations;
 use std::path::Path;
@@ -92,6 +94,19 @@ fn debloat_profile(
     }
 
     if !args().policies {
+    // }
+    //
+    // for profile in &profiles {
+    //     let span = debug_span!("Updating xulstore", %profile);
+    //     let _enter = span.enter();
+    //
+    //     match xulstore::xulstore(&profile.path) {
+    //         Ok(()) => debug!("Updated xulstore.json for {profile}"),
+    //         Err(why) => warn!(err = ?why, "Failed to update xulstore.json for {profile}")
+    //     }
+    // }
+
+    if !args().policies || cfg!(target_os = "linux") {
         return Ok(profiles);
     }
 
@@ -102,7 +117,7 @@ fn debloat_profile(
 
     for folder in &installation.app_folders {
         if let Err(why) = policies::create_policies_file(folder) {
-            warn!(err = %why, "Failed to create policies file in {}", folder.display());
+            warn!(err = ?why, "Failed to create policies file in {}", folder.display());
         }
     }
 

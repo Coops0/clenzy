@@ -15,6 +15,7 @@ use std::{
 use sysinfo::System;
 use tracing::{debug_span, info, warn};
 use util::logging::{setup_logging, success};
+use crate::util::process_single_policies;
 
 #[derive(Parser, Default)]
 #[command(version)]
@@ -45,6 +46,12 @@ pub struct Args {
 
     #[clap(long = "windows-brave-policies", default_value_t = false, hide = true)]
     pub windows_brave_policies: bool,
+
+    #[clap(long = "linux-brave-policies", default_value_t = false, hide = true)]
+    pub linux_brave_policies: bool,
+
+    #[clap(long = "linux-firefox-policies", default_value_t = false, hide = true)]
+    pub linux_firefox_policies: bool,
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -74,17 +81,8 @@ fn main() -> color_eyre::Result<()> {
         return Ok(());
     }
 
-    // Short circuit, this happens after we run this as a child with elevated permissions
-    #[cfg(target_os = "windows")]
-    if args.windows_brave_policies {
-        let install = installations.iter().find(|i| i.browser_name == Brave::name());
-        if let Some(install) = install {
-            return brave::create_policies_windows(install, args.backup, true)
-        }
 
-        color_eyre::eyre::bail!("no brave installation found?");
-    }
-
+    process_single_policies(args, &installations[..], false);
 
     for browser in &*BROWSERS {
         if let Some(fetch_resources) = browser.fetch_resources {
@@ -116,24 +114,11 @@ fn main() -> color_eyre::Result<()> {
 
         match installation.debloat() {
             Ok(()) => success(&format!("Finished debloating {}", installation.browser_name)),
-            Err(why) => warn!(err = %why, "Failed to debloat {}", installation.browser_name)
+            Err(why) => warn!(err = ?why, "Failed to debloat {}", installation.browser_name)
         }
     }
 
-    // For Brave policies on windows, it uses the registry
-    // so we only want to run this once. Not dependent on profiles.
-    #[cfg(target_os = "windows")]
-    if args.policies {
-        let install = installations.iter().find(|i| i.browser_name == Brave::name());
-
-        if let Some(install) = install {
-            if let Err(why) = brave::create_policies_windows(install, args.backup, false) {
-                warn!(err = %why, "Failed to create Brave policies");
-            } else {
-                success("Created Brave policies");
-            }
-        }
-    }
+    process_single_policies(args, &installations[..], true);
 
     success("Done");
     Ok(())

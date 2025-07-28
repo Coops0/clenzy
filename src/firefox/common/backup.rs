@@ -17,7 +17,7 @@ pub fn backup_profile(profile: &BrowserProfile) -> color_eyre::Result<()> {
         .map_err(color_eyre::eyre::Error::from)
         .and_then(|p| p.parent().map(Path::to_path_buf).wrap_err("Parent was None"))
         .unwrap_or_else(|why| {
-            warn!(path = %profile.path.display(), err = %why, "Failed to get parent directory, falling back to profile path");
+            warn!(path = %profile.path.display(), err = ?why, "Failed to get parent directory, falling back to profile path");
             profile.path.clone()
         });
 
