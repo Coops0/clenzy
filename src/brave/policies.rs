@@ -10,7 +10,6 @@ static POLICIES: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock
         .expect("to parse policies json file")
 });
 
-// todo put into the debloat module
 pub fn create_policies(installation: &Installation) -> color_eyre::Result<()> {
     create(installation, args().backup)
 }
@@ -70,14 +69,17 @@ pub fn create_policies_windows(
         return Ok(());
     }
 
-    if let Some(stringified) = original
-        && should_backup
-    {
-        let backup_path = installation.data_folders.first().map(|f| f.join("policies.reg"));
-        if let Some(p) = backup_path && let Err(why) = fs::write(&p, stringified.as_bytes()) {
-            warn!(err = ?why, "Failed to write backup file: {}", p.display());
-        } else {
-            success(&format!("Backed up policies for {installation}"));
+    if let Some(stringified) = original {
+        let backup_path = installation.data_folders.first().map(|f| {
+            f.join(format!("policies-backup-{}.reg", chrono::Utc::now().format("%Y%m%d%H%M")))
+        });
+        
+        if let Some(p) = backup_path {
+            if let Err(why) = fs::write(&p, stringified.as_bytes()) {
+                warn!(err = ?why, "Failed to write backup file: {}", p.display());
+            } else {
+                success(&format!("Backed up policies for {installation}"));
+            }
         }
     }
 
@@ -185,7 +187,10 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn create(_installation: &Installation, _backup: bool) -> color_eyre::Result<()> {
     if !cfg!(target_os = "windows") {
-        color_eyre::eyre::bail!("Unsupported OS for Brave policies creation: {}", std::env::consts::OS);
+        color_eyre::eyre::bail!(
+            "Unsupported OS for Brave policies creation: {}",
+            std::env::consts::OS
+        );
     }
 
     Ok(())
