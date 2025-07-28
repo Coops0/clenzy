@@ -13,5 +13,3 @@
 - Figure out the hashing algorithm for Secure Preferences and brave, and install extensions
 - ^ same thing for setting kagi/duckduckgo as default search engine
 - simple UI (egui?)
-- brave policies, no json so have to do it via
-  os [windows example](https://gist.github.com/slashwq/b19e2b125ca45f32e754e74ecc88db2c)

@@ -39,7 +39,7 @@ pub struct Args {
     #[clap(long = "no-search-suggestions", action = ArgAction::SetFalse, default_value_t = true)]
     pub search_suggestions: bool,
 
-    /// Enable creating policy files, for Firefox only right now
+    /// Enable creating policy files
     #[clap(long = "create-policies", short = 'P', default_value_t = false)]
     pub create_policies: bool
 }
