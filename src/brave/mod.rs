@@ -38,7 +38,7 @@ impl Browser for Brave {
             }
         }
 
-        if args().create_policies {
+        if args().policies {
             if let Err(why) = create_policies(installation) {
                 warn!(err = ?why, "Failed to create policies for Brave");
             } else {

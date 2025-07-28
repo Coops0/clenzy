@@ -21,6 +21,7 @@ pub fn create_policies_windows(
     installation: &Installation,
     should_backup: bool
 ) -> color_eyre::Result<()> {
+    // FIXME need to elevate permissions >:(
     use std::fmt::Write;
     use windows_registry::*;
 
@@ -73,13 +74,15 @@ pub fn create_policies_windows(
         let backup_path = installation.data_folders.first().map(|f| {
             f.join(format!("policies-backup-{}.reg", chrono::Utc::now().format("%Y%m%d%H%M")))
         });
-        
+
         if let Some(p) = backup_path {
             if let Err(why) = fs::write(&p, stringified.as_bytes()) {
                 warn!(err = ?why, "Failed to write backup file: {}", p.display());
             } else {
                 success(&format!("Backed up policies for {installation}"));
             }
+        } else {
+            warn!("Failed to find backup path for Brave policies, continuing anyway");
         }
     }
 

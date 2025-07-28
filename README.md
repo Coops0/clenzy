@@ -48,15 +48,15 @@ Download the latest release for your platform from the [releases page](https://g
       --no-vertical-tabs       Disable setting browsers to use vertical tabs
       --no-backup              Disable the creation of backups
       --no-search-suggestions  Disable search suggestions and prefetching. Every word in the URL bar you type will be sent to your search provider if search suggestions are enabled
-  -P, --create-policies        Enable creating policy files for Firefox (as of now)
+  -P, --policies               Enable creating policy files
   -h, --help                   Print help
   -V, --version                Print version
 ```
 
 ## ✨ Features
-- **Opinionated Defaults**
-- **Automatic Backup Creation**
-- **Unattended Option** - Use auto confirmation flag (`-Y`) for script automation
+- **Opinionated, but non-aggressive defaults**
+- **Automatic backup creation**
+- **Unattended option** - Use auto confirmation flag (`-Y`) for script automation
 - **Betterfox.js**
 
 ## 🤔 Why?

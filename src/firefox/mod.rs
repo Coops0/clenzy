@@ -91,7 +91,7 @@ fn debloat_profile(
         }
     }
 
-    if !args().create_policies {
+    if !args().policies {
         return Ok(profiles);
     }
 

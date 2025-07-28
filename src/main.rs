@@ -40,8 +40,8 @@ pub struct Args {
     pub search_suggestions: bool,
 
     /// Enable creating policy files
-    #[clap(long = "create-policies", short = 'P', default_value_t = false)]
-    pub create_policies: bool
+    #[clap(long = "policies", short = 'P', default_value_t = false)]
+    pub policies: bool
 }
 
 pub static ARGS: OnceLock<Args> = OnceLock::new();
@@ -108,11 +108,11 @@ fn main() -> color_eyre::Result<()> {
     // For Brave policies on windows, it uses the registry
     // so we only want to run this once. Not dependent on profiles.
     #[cfg(target_os = "windows")]
-    if args.create_policies {
+    if args.policies {
         let install = installations.iter().find(|i| i.browser_name == Brave::name());
 
         if let Some(install) = install {
-            if let Err(why) = brave::create_policies_windows(install) {
+            if let Err(why) = brave::create_policies_windows(install, args.policies) {
                 warn!(err = %why, "Failed to create Brave policies");
             } else {
                 success("Created Brave policies");

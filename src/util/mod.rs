@@ -170,7 +170,7 @@ pub fn check_if_running(system: &mut System, browser_name: &str) {
     }
 
     warn!("Please close all instances before debloating ({processes})");
-    info!("Press any key to continue");
+    info!("Press enter to continue");
     if let Err(why) = stdin().read_exact(&mut [0_u8]) {
         warn!(err = %why, "Error reading stdin, exiting");
         process::exit(1);
