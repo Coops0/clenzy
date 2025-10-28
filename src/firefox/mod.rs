@@ -79,21 +79,8 @@ fn debloat_profile(
         &custom_overrides.join("\n")
     )?;
 
-    if !args().vertical_tabs {
-        return Ok(profiles);
-    }
-
-    for profile in &profiles {
-        let span = debug_span!("Updating xulstore", %profile);
-        let _enter = span.enter();
-
-        match xulstore::xulstore(&profile.path) {
-            Ok(()) => debug!("Updated xulstore.json for {profile}"),
-            Err(why) => warn!(err = %why, "Failed to update xulstore.json for {profile}")
-        }
-    }
-
-    if !args().policies {
+    // if !args().vertical_tabs {
+    //     return Ok(profiles);
     // }
     //
     // for profile in &profiles {

@@ -33,10 +33,6 @@ impl Browser for Brave {
     }
 
     fn debloat(installation: &Installation) -> color_eyre::Result<()> {
-        for data_folder in &installation.data_folders {
-            if let Err(why) = debloat_data_folder(data_folder) {
-                warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());
-            } else {
         // for data_folder in &installation.data_folders {
         //     if let Err(why) = debloat_data_folder(data_folder) {
         //         warn!(err = ?why, "Failed to debloat data folder: {}", data_folder.display());

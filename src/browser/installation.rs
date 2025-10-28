@@ -18,7 +18,7 @@ pub enum Variant {
 pub struct Installation {
     // TODO see which we can make private & remove clippy allow
     pub browser_name: &'static str,
-    pub debloat_fn: fn(&Installation) -> color_eyre::Result<()>,
+    pub debloat_fn: fn(&Self) -> color_eyre::Result<()>,
     pub installed_via: InstalledVia,
     pub data_folders: Vec<PathBuf>,
     pub app_folders: Vec<PathBuf>,

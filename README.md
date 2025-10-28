@@ -1,6 +1,6 @@
 # Clenzy
 
-## 📊 Before & After
+## Before & After
 <div align="center">
 <p float="left">
   <img src="https://github.com/user-attachments/assets/f725b808-16f6-46a8-a142-fda8524573eb" width="49%" alt="Firefox Before" />
@@ -20,10 +20,10 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 </div>
 
-## 🚀 Overview
+## Overview
 Quickly disable AI, tracking, crypto, and other garbage features from some browsers.
 
-## ✅ Supported Platforms
+## Supported Platforms
 ### Operating Systems
 - Windows
 - macOS
@@ -53,20 +53,20 @@ Download the latest release for your platform from the [releases page](https://g
   -V, --version                Print version
 ```
 
-## ✨ Features
+## Features
 - **Opinionated, but non-aggressive defaults**
 - **Automatic backup creation**
 - **Unattended option** - Use auto confirmation flag (`-Y`) for script automation
 - **Betterfox.js**
 
-## 🤔 Why?
+## Why?
 For me at least, I am very picky about my browser since I spend so much time in it.
 I spend a lot of time tweaking it every time I installed it, so this makes it immediate.
 
 ## ❓Will you support X browser?
 #### Open an issue! I will look into it.
 
-## 🧩 Recommendations
+## Recommendations
 ### Browsers
 - Windows & Linux: Firefox, Brave
 <!-- - Linux: Firefox, Brave, Orion (in the future)-->
@@ -82,4 +82,3 @@ use.</sub>
 ### Extensions
 - uBlock Origin
 - Your favorite password manager
-- *Maybe* Sponsorblock

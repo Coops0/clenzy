@@ -367,7 +367,7 @@ fn try_policies_or_fail(r: color_eyre::Result<()>, explicit: bool) {
 pub fn should_elevate() -> bool {
     if args().auto_confirm {
         return true;
-    };
+    }
 
     info!("Policy creation requires elevated permissions.");
     inquire::prompt_confirmation("Request elevated permissions? (y/n)").unwrap_or_exit()

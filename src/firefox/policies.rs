@@ -12,7 +12,7 @@ pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()
     let policies = generate_policies()?;
     let folder = if cfg!(target_os = "macos") {
         // Firefox.app/Contents/Resources/distribution
-        installation_folder.join("Firefox.app/Contents/Resources/distribution")
+        installation_folder.join("Resources/distribution")
     } else if cfg!(target_os = "windows") {
         installation_folder.join("distribution")
     } else {
@@ -25,7 +25,11 @@ pub fn create_policies_file(installation_folder: &Path) -> color_eyre::Result<()
         return Ok(());
     }
 
-    let _ = fs::create_dir_all(fs::canonicalize(&folder).unwrap_or(folder));
+    // TODO we need elevated perms for this too
+    if let Err(why) = fs::create_dir_all(fs::canonicalize(&folder).unwrap_or(folder)) {
+        debug!(err = ?why, "Failed to create policies directory");
+    }
+
     fs::write(&policies_path, policies)
         .wrap_err_with(|| format!("Failed to write policies to {}", &policies_path.display()))
 }

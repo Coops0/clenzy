@@ -3,7 +3,7 @@ use crate::{
 };
 use color_eyre::eyre::{Context, ContextCompat};
 use std::{fs, path::Path, process::Stdio, sync::LazyLock};
-use tracing::warn;
+use tracing::{debug, warn};
 
 static POLICIES: LazyLock<serde_json::Map<String, serde_json::Value>> = LazyLock::new(|| {
     serde_json::from_str(include_str!("../../snippets/brave/policies.json"))
@@ -123,6 +123,8 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
     let file_name = format!("com.brave.Browser{modifier}");
 
     let plist_path = home.join(format!("Library/Preferences/{file_name}.plist"));
+    debug!(path = %plist_path.display(), "Brave policy file path");
+    
     let plist_data = fs::read(&plist_path).ok();
     let plist = plist_data
         .as_ref()
@@ -134,6 +136,7 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         let root = i.data_folders.first()?;
         let backup_path =
             root.join(format!("{name}-{}.plist", chrono::Utc::now().format("%Y%m%d%H%M")));
+        debug!(path = %backup_path.display(), "Backing up existing Brave policy file");
 
         fs::write(&backup_path, p).ok()
     }
@@ -165,7 +168,7 @@ fn create(installation: &Installation, should_backup: bool) -> color_eyre::Resul
         }
     }
 
-    plist::to_file_binary(&plist_path, &new_plist).wrap_err("Failed to save Brave plist file")
+    plist::to_file_xml(&plist_path, &new_plist).wrap_err("Failed to save Brave plist file")
 }
 
 #[cfg(target_os = "linux")]
